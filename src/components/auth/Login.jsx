@@ -1,4 +1,3 @@
-
 // ============================================================================
 // FILE: src/components/auth/Login.jsx
 // PURPOSE: Login form component
@@ -19,7 +18,7 @@ const Login = ({ onSwitchToRegister, onLoginSuccess }) => {
   const { login } = useAuth();
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     // Prevent page refresh (default form behavior)
     e.preventDefault();
     
@@ -41,14 +40,23 @@ const Login = ({ onSwitchToRegister, onLoginSuccess }) => {
 
     // Attempt login
     try {
-      const user = login(email, password);
+      // We use 'await' here because login connects to the internet (Supabase)
+      await login(email, password);
       
-      // Call success callback if provided
+      // If code reaches here, login was successful!
       if (onLoginSuccess) {
-        onLoginSuccess(user);
+        onLoginSuccess();
       }
     } catch (err) {
-      setError('Login failed. Please try again.');
+      console.error("Login failed:", err.message);
+
+      // Check for the specific Supabase error
+      if (err.message.includes("Invalid login credentials")) {
+        setError("User not found or incorrect password. Please register if you are new.");
+      } else {
+        // Show other errors (like network issues)
+        setError(err.message);
+      }
     }
   };
 

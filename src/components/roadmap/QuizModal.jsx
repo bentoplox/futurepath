@@ -1,267 +1,272 @@
 // ============================================================================
 // FILE: src/components/roadmap/QuizModal.jsx
-// PURPOSE: Skill verification quiz interface
-// DESCRIPTION: Multiple-choice quiz with scoring and results
+// PURPOSE: Quiz with Scoring + Answer Review Feature
 // ============================================================================
 
-import React, { useState } from 'react';
-import { MOCK_QUIZZES } from '../../data/mockData';
+import React, { useState, useEffect } from 'react';
 import { styles } from '../../styles/styles';
+import { supabase } from '../../supabaseClient'; 
+import { useAuth } from '../../context/AuthContext';
 
 const QuizModal = ({ skill, onClose, onQuizComplete }) => {
-  // Get quiz data for this skill
-  const quiz = MOCK_QUIZZES[skill.skill_id];
+  const { user } = useAuth();
   
   // State management
+  const [questions, setQuestions] = useState([]); 
+  const [loading, setLoading] = useState(true);
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState([]);
+  const [selectedAnswers, setSelectedAnswers] = useState({}); // { 0: 1, 1: 3 } (QuestionIndex: OptionIndex)
+  
+  // View States
   const [showResults, setShowResults] = useState(false);
+  const [isReviewing, setIsReviewing] = useState(false); // <--- NEW STATE FOR REVIEW MODE
   const [score, setScore] = useState(0);
 
-  // Handle case where quiz doesn't exist
-  if (!quiz) {
-    return (
-      <div style={styles.modalOverlay} onClick={onClose}>
-        <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-          <h2 style={{ marginBottom: '20px' }}>Quiz Not Available</h2>
-          <p style={{ color: '#6b7280', marginBottom: '20px' }}>
-            Sorry, no quiz is available for this skill yet. We're working on adding more quizzes!
-          </p>
-          <button onClick={onClose} style={styles.button}>
-            Close
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // 1. FETCH QUIZ
+  useEffect(() => {
+    const fetchQuiz = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('quiz')
+          .select('*')
+          .eq('skill_id', skill.skill_id);
 
-  // Handle answer selection
-  const handleAnswerSelect = (answerIndex) => {
-    // Create a copy of selected answers array
-    const newAnswers = [...selectedAnswers];
-    // Update the answer for current question
-    newAnswers[currentQuestion] = answerIndex;
-    setSelectedAnswers(newAnswers);
-  };
-
-  // Navigate to next question
-  const handleNext = () => {
-    if (currentQuestion < quiz.questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
-    }
-  };
-
-  // Navigate to previous question
-  const handlePrevious = () => {
-    if (currentQuestion > 0) {
-      setCurrentQuestion(currentQuestion - 1);
-    }
-  };
-
-  // Submit quiz and calculate score
-  const handleSubmit = () => {
-    // Count correct answers
-    let correctCount = 0;
-    quiz.questions.forEach((question, index) => {
-      if (selectedAnswers[index] === question.correct) {
-        correctCount++;
+        if (error) throw error;
+        if (data && data.length > 0) setQuestions(data);
+      } catch (err) {
+        console.error("Error fetching quiz:", err);
+      } finally {
+        setLoading(false);
       }
+    };
+
+    if (skill?.skill_id) fetchQuiz();
+  }, [skill]);
+
+  // 2. QUIZ LOGIC
+  const handleAnswerSelect = (answerIndex) => {
+    setSelectedAnswers({ ...selectedAnswers, [currentQuestion]: answerIndex });
+  };
+
+  const handleSubmit = async () => {
+    // Calculate Score
+    let correctCount = 0;
+    questions.forEach((q, index) => {
+        const selectedOptionText = q.options[selectedAnswers[index]]; 
+        if (selectedOptionText === q.correct_answer) correctCount++;
     });
 
-    // Calculate percentage
-    const percentage = Math.round((correctCount / quiz.questions.length) * 100);
-    setScore(percentage);
-    setShowResults(true);
-
-    // Determine if user passed (70% threshold)
-    const passed = percentage >= 70;
+    const percentage = Math.round((correctCount / questions.length) * 100);
     
-    // Call parent callback with results
-    onQuizComplete(skill, percentage, passed);
+    setScore(percentage);
+    setShowResults(true); // Show score first
+
+    // Save Result
+    if (user) {
+      try {
+        await supabase.from('quiz_result').insert([{
+            user_id: user.user_id,
+            skill_id: skill.skill_id,
+            score: percentage,
+            attempt_date: new Date()
+        }]);
+      } catch (error) { console.error("Error saving result:", error); }
+    }
   };
 
-  // Get current question
-  const question = quiz.questions[currentQuestion];
+  const handleFinish = () => {
+    if (onQuizComplete) onQuizComplete(skill, score);
+    else onClose();
+  };
 
-  // Show results screen
-  if (showResults) {
-    const passed = score >= 70;
-    
-    return (
+  // --- RENDER HELPERS ---
+
+  if (loading) return <div style={styles.modalOverlay}><div style={styles.modalContent}><h3>Loading Quiz...</h3></div></div>;
+  if (questions.length === 0) return (
       <div style={styles.modalOverlay} onClick={onClose}>
-        <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-          <h2 style={{ marginBottom: '20px', textAlign: 'center' }}>
-            Quiz Results
-          </h2>
-          
-          <div style={styles.scoreDisplay}>
-            {/* Large score display */}
-            <div style={{
-              fontSize: '64px',
-              fontWeight: 'bold',
-              color: passed ? '#10b981' : '#ef4444',
-              marginBottom: '10px'
-            }}>
-              {score}%
-            </div>
+        <div style={styles.modalContent}>
+          <h3>Quiz Not Available</h3>
+          <p>No questions found for this skill.</p>
+          <button onClick={onClose} style={styles.button}>Close</button>
+        </div>
+      </div>
+  );
+
+  // =========================================================
+  // VIEW 1: REVIEW ANSWERS SCREEN (NEW)
+  // =========================================================
+  if (isReviewing) {
+    return (
+      <div style={styles.modalOverlay}>
+        <div style={{...styles.modalContent, maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto'}}>
+            <h2 style={{textAlign: 'center', marginBottom: '20px'}}>🔍 Review Answers</h2>
             
-            {/* Pass/fail message */}
-            <p style={{ 
-              fontSize: '20px', 
-              marginBottom: '20px',
-              color: '#374151'
-            }}>
-              {passed 
-                ? '🎉 Congratulations! You passed!' 
-                : '😔 Keep learning and try again'}
-            </p>
+            <div style={{display: 'flex', flexDirection: 'column', gap: '30px'}}>
+                {questions.map((q, qIndex) => {
+                    const userSelectedIdx = selectedAnswers[qIndex];
+                    const userSelectedText = q.options[userSelectedIdx];
+                    const isCorrect = userSelectedText === q.correct_answer;
 
-            {/* Detailed feedback */}
-            <div style={{
-              padding: '20px',
-              backgroundColor: passed ? '#f0fdf4' : '#fef2f2',
-              borderRadius: '8px',
-              marginBottom: '20px'
-            }}>
-              <p style={{ 
-                fontSize: '16px', 
-                color: passed ? '#166534' : '#991b1b',
-                marginBottom: '10px'
-              }}>
-                You got {Math.round((score / 100) * quiz.questions.length)} out of {quiz.questions.length} questions correct.
-              </p>
-              
-              {!passed && (
-                <p style={{ fontSize: '14px', color: '#6b7280' }}>
-                  Review the learning resources and try again. You need 70% to pass.
-                </p>
-              )}
+                    return (
+                        <div key={qIndex} style={{borderBottom: '1px solid #eee', paddingBottom: '20px'}}>
+                            <p style={{fontWeight: 'bold', marginBottom: '10px'}}>
+                                {qIndex + 1}. {q.question}
+                            </p>
+                            
+                            {/* Render Options for Review */}
+                            <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                                {q.options.map((opt, optIdx) => {
+                                    const isSelected = userSelectedIdx === optIdx;
+                                    const isTheCorrectAnswer = opt === q.correct_answer;
+                                    
+                                    let bgColor = 'white';
+                                    let borderColor = '#ddd';
+                                    let textColor = 'black';
+
+                                    // Logic for Coloring
+                                    if (isTheCorrectAnswer) {
+                                        // Always highlight the correct answer in Green
+                                        bgColor = '#dcfce7'; // Light Green
+                                        borderColor = '#16a34a';
+                                        textColor = '#166534';
+                                    } 
+                                    else if (isSelected && !isTheCorrectAnswer) {
+                                        // Highlight wrong selection in Red
+                                        bgColor = '#fee2e2'; // Light Red
+                                        borderColor = '#dc2626';
+                                        textColor = '#991b1b';
+                                    }
+
+                                    return (
+                                        <div key={optIdx} style={{
+                                            padding: '10px', borderRadius: '6px', border: `1px solid ${borderColor}`,
+                                            backgroundColor: bgColor, color: textColor, fontSize: '14px',
+                                            display: 'flex', justifyContent: 'space-between'
+                                        }}>
+                                            <span>
+                                                <strong>{String.fromCharCode(65+optIdx)}.</strong> {opt}
+                                            </span>
+                                            {/* Status Icons */}
+                                            {isTheCorrectAnswer && <span>✅ Correct</span>}
+                                            {isSelected && !isTheCorrectAnswer && <span>❌ Your Answer</span>}
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
-          </div>
 
-          <button onClick={onClose} style={styles.button}>
-            Close
-          </button>
+            <button 
+                onClick={() => setIsReviewing(false)} 
+                style={{...styles.primaryButton, width: '100%', marginTop: '20px'}}
+            >
+                Back to Results
+            </button>
         </div>
       </div>
     );
   }
 
-  // Show quiz questions
-  return (
-    <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        {/* Quiz header */}
-        <h2 style={{ marginBottom: '10px' }}>
-          📝 {skill.skill_name} Quiz
-        </h2>
-        
-        {/* Progress indicator */}
-        <p style={styles.quizProgress}>
-          Question {currentQuestion + 1} of {quiz.questions.length}
-        </p>
+  // =========================================================
+  // VIEW 2: RESULTS SCREEN (UPDATED)
+  // =========================================================
+  if (showResults) {
+    const passed = score >= 80;
+    return (
+      <div style={styles.modalOverlay}>
+        <div style={styles.modalContent}>
+          <h2 style={{textAlign:'center', color: passed ? '#10b981' : '#ef4444', marginBottom: '20px'}}>
+            {passed ? '🎉 You Passed!' : '❌ Keep Learning'}
+          </h2>
+          
+          <div style={{textAlign: 'center', marginBottom: '30px'}}>
+            <div style={{fontSize:'64px', fontWeight:'bold', color: passed ? '#10b981' : '#ef4444'}}>
+                {score}%
+            </div>
+            <p style={{color:'#6b7280'}}>
+                {passed ? 'You have unlocked this skill!' : 'You need 80% to pass.'}
+            </p>
+          </div>
 
-        {/* Progress bar */}
-        <div style={{
-          width: '100%',
-          height: '6px',
-          backgroundColor: '#e5e7eb',
-          borderRadius: '3px',
-          marginBottom: '30px',
-          overflow: 'hidden'
-        }}>
-          <div style={{
-            width: `${((currentQuestion + 1) / quiz.questions.length) * 100}%`,
-            height: '100%',
-            backgroundColor: '#6366f1',
-            transition: 'width 0.3s ease'
-          }} />
-        </div>
-
-        {/* Question container */}
-        <div style={styles.questionContainer}>
-          <h3 style={{ 
-            marginBottom: '20px', 
-            fontSize: '18px',
-            color: '#111827',
-            lineHeight: '1.5'
-          }}>
-            {question.question}
-          </h3>
-
-          {/* Answer options */}
-          <div style={styles.optionsContainer}>
-            {question.options.map((option, index) => (
-              <div
-                key={index}
-                onClick={() => handleAnswerSelect(index)}
-                style={{
-                  ...styles.optionItem,
-                  ...(selectedAnswers[currentQuestion] === index 
-                    ? styles.optionSelected 
-                    : {}),
-                  cursor: 'pointer'
-                }}
+          <div style={{display: 'flex', gap: '10px'}}>
+              {/* BUTTON TO REVIEW ANSWERS */}
+              <button 
+                onClick={() => setIsReviewing(true)} 
+                style={{...styles.secondaryButton, flex: 1}}
               >
-                <span style={{ marginRight: '10px', fontWeight: 'bold' }}>
-                  {String.fromCharCode(65 + index)}.
-                </span>
-                {option}
-              </div>
-            ))}
+                🔍 Review Answers
+              </button>
+
+              {/* BUTTON TO FINISH */}
+              <button 
+                onClick={handleFinish} 
+                style={{...styles.primaryButton, flex: 1}}
+              >
+                {passed ? 'Finish' : 'Try Again Later'}
+              </button>
           </div>
         </div>
+      </div>
+    );
+  }
 
-        {/* Navigation buttons */}
-        <div style={styles.quizNavigation}>
-          <button
-            onClick={handlePrevious}
-            disabled={currentQuestion === 0}
-            style={{
-              ...styles.secondaryButton,
-              opacity: currentQuestion === 0 ? 0.5 : 1
-            }}
-          >
-            ← Previous
-          </button>
+  // =========================================================
+  // VIEW 3: QUESTION SCREEN (EXISTING)
+  // =========================================================
+  const question = questions[currentQuestion];
 
-          {/* Show Next or Submit based on position */}
-          {currentQuestion < quiz.questions.length - 1 ? (
-            <button
-              onClick={handleNext}
-              disabled={selectedAnswers[currentQuestion] === undefined}
-              style={{
-                ...styles.primaryButton,
-                opacity: selectedAnswers[currentQuestion] === undefined ? 0.5 : 1
-              }}
-            >
-              Next →
-            </button>
-          ) : (
-            <button
-              onClick={handleSubmit}
-              disabled={selectedAnswers.length !== quiz.questions.length}
-              style={{
-                ...styles.successButton,
-                opacity: selectedAnswers.length !== quiz.questions.length ? 0.5 : 1
-              }}
-            >
-              Submit Quiz ✓
-            </button>
-          )}
+  return (
+    <div style={styles.modalOverlay}>
+      <div style={styles.modalContent}>
+        <h2 style={{ marginBottom: '10px' }}>📝 Quiz: {skill.skill_name}</h2>
+        <p style={{color:'#666', fontSize:'14px', marginBottom:'20px'}}>Question {currentQuestion + 1} of {questions.length}</p>
+        
+        <div style={{height:'6px', background:'#e5e7eb', borderRadius:'3px', marginBottom:'30px', overflow:'hidden'}}>
+            <div style={{height:'100%', background:'#6366f1', width:`${((currentQuestion+1)/questions.length)*100}%`, transition:'width 0.3s'}} />
         </div>
 
-        {/* Close button */}
-        <button 
-          onClick={onClose}
-          style={{
-            ...styles.secondaryButton,
-            width: '100%',
-            marginTop: '15px'
-          }}
-        >
-          Cancel Quiz
-        </button>
+        <div style={styles.questionContainer}>
+            <h3 style={{marginBottom:'20px', fontSize:'18px', color:'#111827', lineHeight:'1.5'}}>
+                {question.question}
+            </h3>
+
+            <div style={styles.optionsContainer}>
+                {question.options.map((opt, idx) => (
+                    <div key={idx} 
+                        onClick={() => handleAnswerSelect(idx)}
+                        style={{
+                            ...styles.optionItem,
+                            cursor:'pointer',
+                            backgroundColor: selectedAnswers[currentQuestion] === idx ? '#e0e7ff' : 'white',
+                            borderColor: selectedAnswers[currentQuestion] === idx ? '#4338ca' : '#ddd',
+                            borderWidth: '1px', borderStyle: 'solid', padding: '12px', borderRadius: '6px', marginBottom: '10px'
+                        }}
+                    >
+                        <span style={{marginRight:'10px', fontWeight:'bold'}}>{String.fromCharCode(65+idx)}.</span> 
+                        {opt}
+                    </div>
+                ))}
+            </div>
+        </div>
+
+        <div style={styles.quizNavigation}>
+            <button onClick={() => setCurrentQuestion(curr => curr - 1)} disabled={currentQuestion===0} style={{...styles.secondaryButton, opacity: currentQuestion===0?0.5:1}}>
+                ← Previous
+            </button>
+            
+            {currentQuestion < questions.length - 1 ? (
+                <button onClick={() => setCurrentQuestion(curr => curr + 1)} disabled={selectedAnswers[currentQuestion] === undefined} style={{...styles.primaryButton, opacity: selectedAnswers[currentQuestion]===undefined?0.5:1}}>
+                    Next →
+                </button>
+            ) : (
+                <button onClick={handleSubmit} disabled={Object.keys(selectedAnswers).length !== questions.length} style={{...styles.successButton, opacity: Object.keys(selectedAnswers).length!==questions.length?0.5:1}}>
+                    Submit Quiz ✓
+                </button>
+            )}
+        </div>
+        <button onClick={onClose} style={{...styles.secondaryButton, width:'100%', marginTop:'15px'}}>Cancel Quiz</button>
       </div>
     </div>
   );

@@ -1,211 +1,239 @@
 // ============================================================================
 // FILE: src/components/roadmap/RoadmapDisplay.jsx
-// PURPOSE: Display complete learning roadmap with progress tracking
-// DESCRIPTION: Shows all skills, overall progress, and manages quiz modal
+// PURPOSE: Displays roadmap, fetches Career Name, and handles errors visible
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../../supabaseClient';
+import { useAuth } from '../../context/AuthContext';
 import SkillCard from './SkillCard';
 import QuizModal from './QuizModal';
-import { MOCK_RESOURCES } from '../../data/mockData';
 import { styles } from '../../styles/styles';
 
-const RoadmapDisplay = ({ roadmap, onBackToCareerSelection }) => {
-  // Progress tracking: stores completion status for each skill
-  // Key: skill_id, Value: { completion_status, completion_date }
-  const [progressRecords, setProgressRecords] = useState({});
+const RoadmapDisplay = ({ careerId }) => { // Removed 'careerName' prop, we fetch it now
+  const { user } = useAuth();
   
-  // State for quiz modal
-  const [selectedSkill, setSelectedSkill] = useState(null);
+  // Data States
+  const [steps, setSteps] = useState([]);
+  const [completedSteps, setCompletedSteps] = useState(new Set());
+  const [quizScores, setQuizScores] = useState({}); 
+  const [roadmapId, setRoadmapId] = useState(null);
+  const [realCareerName, setRealCareerName] = useState('Loading...'); // New State
+  
+  // UI States
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState(null); // New State for visible errors
+  const [selectedSkillForQuiz, setSelectedSkillForQuiz] = useState(null);
 
-  // Calculate overall progress percentage
-  const calculateProgress = () => {
-    const totalSkills = roadmap.steps.length;
-    
-    // Count how many skills are completed
-    const completedSkills = Object.values(progressRecords).filter(
-      p => p.completion_status === 'completed'
-    ).length;
-    
-    // Return percentage
-    return totalSkills > 0 ? Math.round((completedSkills / totalSkills) * 100) : 0;
-  };
+  // 1. Fetch Everything
+  useEffect(() => {
+    if (!careerId || !user) return;
 
-  // Get progress statistics
-  const getProgressStats = () => {
-    const total = roadmap.steps.length;
-    const completed = Object.values(progressRecords).filter(
-      p => p.completion_status === 'completed'
-    ).length;
-    const inProgress = Object.values(progressRecords).filter(
-      p => p.completion_status === 'in_progress'
-    ).length;
-    const notStarted = total - completed - inProgress;
+    const fetchData = async () => {
+      setLoading(true);
+      setErrorMsg(null);
+      try {
+        // A. Fetch Career Details (Name)
+        const { data: careerData, error: careerError } = await supabase
+            .from('career')
+            .select('career_name')
+            .eq('career_id', careerId)
+            .single();
+        
+        if (careerError) throw careerError;
+        setRealCareerName(careerData.career_name);
 
-    return { total, completed, inProgress, notStarted };
-  };
+        // B. Get Roadmap ID
+        const { data: roadmapData } = await supabase
+          .from('roadmap')
+          .select('roadmap_id')
+          .eq('user_id', user.user_id)
+          .eq('career_id', careerId)
+          .single();
+        if (roadmapData) setRoadmapId(roadmapData.roadmap_id);
 
-  // Update progress for a skill
-  const handleUpdateProgress = (skill, newStatus) => {
-    setProgressRecords({
-      ...progressRecords,
-      [skill.skill_id]: {
-        completion_status: newStatus,
-        completion_date: newStatus === 'completed' ? new Date().toISOString() : null
+        // C. Fetch Steps & Skills
+        // Note: We request 'description' here. Make sure you ran the SQL Fix!
+        const { data: stepsData, error: stepsError } = await supabase
+          .from('roadmap_step')
+          .select(`
+            step_id, step_order,
+            skill:skill_id (
+              skill_id, skill_name, skill_category, description,
+              learning_resource (resource_id, title, provider, cost_type, url)
+            )
+          `)
+          .eq('career_id', careerId)
+          .order('step_order', { ascending: true });
+        
+        if (stepsError) throw stepsError;
+        setSteps(stepsData || []);
+
+        // D. Fetch Progress
+        const { data: progressData } = await supabase
+          .from('progress_record')
+          .select('step_id')
+          .eq('user_id', user.user_id)
+          .eq('completion_status', 'completed');
+        
+        const completedSet = new Set(progressData?.map(p => p.step_id) || []);
+        setCompletedSteps(completedSet);
+
+        // E. Fetch Quiz Results
+        const { data: quizData } = await supabase
+            .from('quiz_result')
+            .select('skill_id, score')
+            .eq('user_id', user.user_id);
+        
+        const scoresMap = {};
+        if (quizData) {
+            quizData.forEach(r => {
+                if (!scoresMap[r.skill_id] || r.score > scoresMap[r.skill_id]) {
+                    scoresMap[r.skill_id] = r.score;
+                }
+            });
+        }
+        setQuizScores(scoresMap);
+
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setErrorMsg(err.message); // Show error to user
+      } finally {
+        setLoading(false);
       }
-    });
+    };
 
-    // Show encouraging message
-    if (newStatus === 'in_progress') {
-      console.log(`Started learning: ${skill.skill_name}`);
-    } else if (newStatus === 'completed') {
-      console.log(`Completed: ${skill.skill_name}! 🎉`);
+    fetchData();
+  }, [careerId, user]);
+
+
+  // 2. Logic: Handle "Mark Done" Click
+  const handleUpdateProgress = async (stepId, skillId) => {
+    const isCurrentlyCompleted = completedSteps.has(stepId);
+    
+    // --- VALIDATION: CHECK QUIZ SCORE FIRST ---
+    if (!isCurrentlyCompleted) {
+        const bestScore = quizScores[skillId] || 0;
+        if (bestScore < 80) {
+            alert(`🔒 Locked! You must score at least 80% on the quiz to complete this skill.\nCurrent Best: ${bestScore}%`);
+            return; 
+        }
     }
-  };
 
-  // Handle quiz completion
-  const handleQuizComplete = (skill, score, passed) => {
-    // Close quiz modal
-    setSelectedSkill(null);
+    const nextCompletedSteps = new Set(completedSteps);
+    let action = '';
 
-    // If passed, mark skill as completed
-    if (passed) {
-      handleUpdateProgress(skill, 'completed');
-      
-      // Show success message
-      alert(
-        `🎉 Congratulations!\n\nYou scored ${score}% on ${skill.skill_name}!\n\nThe skill has been marked as completed.`
-      );
+    if (isCurrentlyCompleted) {
+      nextCompletedSteps.delete(stepId);
+      action = 'delete';
     } else {
-      // Show encouragement message
-      alert(
-        `📚 Keep Learning!\n\nYou scored ${score}% on ${skill.skill_name}.\n\nReview the learning resources and try again when you're ready.`
-      );
+      nextCompletedSteps.add(stepId);
+      action = 'insert';
+    }
+    setCompletedSteps(nextCompletedSteps); 
+
+    try {
+      if (action === 'delete') {
+         await supabase.from('progress_record').delete()
+           .eq('user_id', user.user_id).eq('step_id', stepId);
+         if (roadmapId) {
+            await supabase.from('roadmap').update({ status: 'active' }).eq('roadmap_id', roadmapId);
+         }
+      } else {
+         await supabase.from('progress_record').upsert({
+            user_id: user.user_id, step_id: stepId,
+            completion_status: 'completed', completion_date: new Date()
+         });
+
+         if (nextCompletedSteps.size === steps.length && roadmapId) {
+             await supabase.from('roadmap').update({ status: 'completed' }).eq('roadmap_id', roadmapId);
+             alert("🏆 CONGRATULATIONS! You have completed this entire Career Roadmap!");
+         }
+      }
+    } catch (err) {
+      console.error("Error updating progress:", err);
+      setCompletedSteps(completedSteps); 
     }
   };
 
-  // Get progress stats
-  const stats = getProgressStats();
+
+  const handleQuizPassed = (skill, newScore) => {
+      setQuizScores(prev => {
+          // Get the previous best score (or 0 if none)
+          const currentBest = prev[skill.skill_id] || 0;
+          
+          // Compare: Is the new score higher?
+          // If yes, save the new score.
+          // If no, keep the old best score.
+          return {
+              ...prev,
+              [skill.skill_id]: Math.max(currentBest, newScore)
+          };
+      });
+      setSelectedSkillForQuiz(null); // Close modal
+  };
+
+  // --- RENDER ---
+
+  if (loading) return <div style={{textAlign:'center', padding:'40px'}}>Loading Roadmap...</div>;
+  
+  // ERROR STATE (Shows you exactly what went wrong)
+  if (errorMsg) return (
+    <div style={{textAlign:'center', padding:'40px', color:'red'}}>
+      <h3>⚠️ Error Loading Roadmap</h3>
+      <p>{errorMsg}</p>
+      <p style={{fontSize:'12px', color:'#666'}}>Tip: Check your browser console (F12) for details.</p>
+    </div>
+  );
+
+  if (steps.length === 0) return (
+    <div style={{textAlign:'center', padding:'40px'}}>
+      <h3>No steps found for {realCareerName}.</h3>
+      <p>Please contact the admin or try selecting a different career.</p>
+    </div>
+  );
 
   return (
-    <div style={styles.roadmapContainer}>
-      {/* Header section */}
-      <div style={styles.roadmapHeader}>
-        <button onClick={onBackToCareerSelection} style={styles.backButton}>
-          ← Change Career Path
-        </button>
-        
-        <div>
-          <h1 style={{ marginBottom: '10px', color: '#111827' }}>
-            🎓 Your {roadmap.career.career_name} Learning Roadmap
-          </h1>
-          <p style={{ color: '#6b7280', fontSize: '16px' }}>
-            {roadmap.career.description}
-          </p>
-        </div>
-      </div>
-
-      {/* Progress overview section */}
-      <div style={styles.progressSection}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          marginBottom: '15px'
-        }}>
-          <h3 style={{ margin: 0, color: '#111827' }}>
-            Overall Progress: {calculateProgress()}%
-          </h3>
-          <div style={{ fontSize: '24px' }}>
-            {calculateProgress() === 100 ? '🎉' : '📚'}
+    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+      <h2 style={{ textAlign: 'center', marginBottom: '10px' }}>🗺️ {realCareerName}</h2>
+      
+      {/* Completion Badge */}
+      {completedSteps.size === steps.length && steps.length > 0 && (
+          <div style={{ backgroundColor: '#d1fae5', color: '#065f46', padding: '10px', borderRadius: '8px', textAlign: 'center', marginBottom: '20px' }}>
+              🏆 <strong>Roadmap Completed!</strong> Great job mastering these skills.
           </div>
-        </div>
+      )}
 
-        {/* Progress bar */}
-        <div style={styles.progressBarContainer}>
-          <div style={{
-            ...styles.progressBarFill, 
-            width: `${calculateProgress()}%`
-          }} />
-        </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {steps.map((step, index) => (
+          <div key={step.step_id} style={{ position: 'relative' }}>
+            {index !== steps.length - 1 && (
+              <div style={{
+                position: 'absolute', left: '50%', bottom: '-20px',
+                width: '2px', height: '20px', backgroundColor: '#e5e7eb',
+                transform: 'translateX(-50%)', zIndex: 0
+              }} />
+            )}
 
-        {/* Progress statistics */}
-        <div style={{
-          display: 'flex',
-          gap: '20px',
-          marginTop: '20px',
-          flexWrap: 'wrap'
-        }}>
-          <div style={{ flex: 1, minWidth: '150px' }}>
-            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#10b981' }}>
-              {stats.completed}
-            </div>
-            <div style={{ fontSize: '14px', color: '#6b7280' }}>
-              Completed
-            </div>
+            <SkillCard
+              stepNumber={step.step_order}
+              skill={step.skill}
+              resources={step.skill.learning_resource || []}
+              isCompleted={completedSteps.has(step.step_id)}
+              quizScore={quizScores[step.skill.skill_id] || 0}
+              onUpdateProgress={() => handleUpdateProgress(step.step_id, step.skill.skill_id)}
+              onTakeQuiz={() => setSelectedSkillForQuiz(step.skill)}
+            />
           </div>
-          
-          <div style={{ flex: 1, minWidth: '150px' }}>
-            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f59e0b' }}>
-              {stats.inProgress}
-            </div>
-            <div style={{ fontSize: '14px', color: '#6b7280' }}>
-              In Progress
-            </div>
-          </div>
-          
-          <div style={{ flex: 1, minWidth: '150px' }}>
-            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#6b7280' }}>
-              {stats.notStarted}
-            </div>
-            <div style={{ fontSize: '14px', color: '#6b7280' }}>
-              Not Started
-            </div>
-          </div>
-        </div>
-
-        {/* Completion message */}
-        {calculateProgress() === 100 && (
-          <div style={{
-            marginTop: '20px',
-            padding: '15px',
-            backgroundColor: '#f0fdf4',
-            borderRadius: '8px',
-            color: '#166534',
-            textAlign: 'center',
-            fontWeight: '600'
-          }}>
-            🎉 Congratulations! You've completed all skills in your roadmap!
-          </div>
-        )}
-      </div>
-
-      {/* Skills list */}
-      <div style={styles.skillsList}>
-        <h2 style={{ marginBottom: '20px', color: '#111827' }}>
-          📚 Your Learning Path ({roadmap.steps.length} Skills)
-        </h2>
-
-        {/* Render all skills */}
-        {roadmap.steps.map((skill) => (
-          <SkillCard
-            key={skill.skill_id}
-            skill={skill}
-            resources={MOCK_RESOURCES[skill.skill_id] || []}
-            progress={progressRecords[skill.skill_id]}
-            onUpdateProgress={handleUpdateProgress}
-            onTakeQuiz={() => setSelectedSkill(skill)}
-          />
         ))}
       </div>
 
-      {/* Quiz modal - only shows when selectedSkill is not null */}
-      {selectedSkill && (
-        <QuizModal
-          skill={selectedSkill}
-          onClose={() => setSelectedSkill(null)}
-          onQuizComplete={handleQuizComplete}
-        />
+      {selectedSkillForQuiz && (
+          <QuizModal 
+              skill={selectedSkillForQuiz} 
+              onClose={() => setSelectedSkillForQuiz(null)}
+              onQuizComplete={handleQuizPassed} 
+          />
       )}
     </div>
   );
