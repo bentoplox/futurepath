@@ -9,7 +9,9 @@ export const styles = {
   appContainer: {
     minHeight: '100vh',
     backgroundColor: '#f3f4f6',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    display: 'flex',            // <--- NEW: Helps center content vertically if needed
+    flexDirection: 'column',    // <--- NEW: Stacks header and body
   },
 
   loadingContainer: {
@@ -32,42 +34,66 @@ export const styles = {
     boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
   },
 
-  // ===== AUTHENTICATION STYLES =====
+  // ===== AUTHENTICATION STYLES (UPDATED) =====
   authContainer: {
-    maxWidth: '400px',
-    margin: '100px auto',
+    maxWidth: '450px',          // <--- INCREASED slightly for better spacing
+    width: '100%',              // <--- NEW: Ensures it fits on mobile
+    margin: '60px auto',        // <--- ADJUSTED margin
     padding: '40px',
     backgroundColor: 'white',
     borderRadius: '12px',
-    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)', // <--- SOFTER shadow
+    boxSizing: 'border-box',    // <--- CRITICAL FIX: Prevents padding from breaking width
   },
 
   form: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '15px',
-    marginTop: '20px'
+    gap: '20px',                // <--- INCREASED gap for cleaner look
+    marginTop: '20px',
+    textAlign: 'left',          // <--- NEW: Forces labels to align left
+  },
+
+  // NEW: Wrapper for Label + Input pairs to stack them correctly
+  inputGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    width: '100%',
   },
 
   input: {
-    padding: '12px',
+    width: '100%',              // <--- NEW: Forces full width
+    padding: '12px 15px',       // <--- ADJUSTED padding
     border: '1px solid #d1d5db',
-    borderRadius: '6px',
+    borderRadius: '8px',        // <--- ROUNDER corners
     fontSize: '16px',
-    transition: 'border-color 0.2s'
+    transition: 'border-color 0.2s',
+    outline: 'none',
+    boxSizing: 'border-box',    // <--- CRITICAL FIX
+    backgroundColor: '#fff',
   },
 
-  // ===== BUTTON STYLES =====
+  label: {                      // <--- NEW: Specific style for labels
+    display: 'block',
+    color: '#374151', 
+    fontSize: '14px', 
+    fontWeight: '600',
+  },
+
+  // ===== BUTTON STYLES (UPDATED) =====
   button: {
     padding: '12px 24px',
     backgroundColor: '#6366f1',
     color: 'white',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: '8px',
     fontSize: '16px',
     fontWeight: '600',
     cursor: 'pointer',
-    transition: 'all 0.2s'
+    transition: 'all 0.2s',
+    width: '100%',              // <--- NEW: Full width buttons for forms
+    boxSizing: 'border-box',    // <--- NEW
   },
 
   primaryButton: {

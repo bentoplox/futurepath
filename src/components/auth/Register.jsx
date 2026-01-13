@@ -1,29 +1,31 @@
 // ============================================================================
 // FILE: src/components/auth/Register.jsx
-// PURPOSE: Registration form with Student/Alumni logic
+// PURPOSE: Dynamic Registration (Fixed Layout)
 // ============================================================================
 
-import React, { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../../supabaseClient';
 import { styles } from '../../styles/styles';
 
-const Register = ({ onSwitchToLogin, onRegisterSuccess }) => {
-  // --- STATE MANAGEMENT ---
-  const [role, setRole] = useState('student'); // Default to student
+const Register = ({ onSwitchToLogin, onRegisterSuccess, initialRole = 'student' }) => {
+  // Common Fields
+  const [role, setRole] = useState(initialRole);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  
+  // Student Specific
   const [programme, setProgramme] = useState('Software Engineering');
+  const [academicYear, setAcademicYear] = useState('Year 1');
   
-  // UI States
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  
-  const { register } = useAuth();
+  // Alumni Specific
+  const [graduationYear, setGraduationYear] = useState('2025');
 
-  // --- UM PROGRAMMES LIST ---
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
   const umProgrammes = [
     "Software Engineering",
     "Data Science",
@@ -33,47 +35,76 @@ const Register = ({ onSwitchToLogin, onRegisterSuccess }) => {
     "Multimedia Computing"
   ];
 
-  // --- VALIDATION & SUBMIT ---
+  useEffect(() => {
+    setRole(initialRole);
+  }, [initialRole]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
+    setError('');
 
     try {
-      // 1. Check Mandatory Fields
-      if (!name || !email || !password || !confirmPassword) {
-        throw new Error('Please fill in all mandatory fields.');
-      }
+      if (!name || !email || !password || !confirmPassword) throw new Error('Please fill in all mandatory fields.');
+      if (password !== confirmPassword) throw new Error('Passwords do not match.');
+      if (password.length < 6) throw new Error('Password must be at least 6 characters long.');
 
-      // 2. Password Match Check
-      if (password !== confirmPassword) {
-        throw new Error('Passwords do not match.');
-      }
-
-      // 3. Password Length Check
-      if (password.length < 6) {
-        throw new Error('Password must be at least 6 characters long.');
-      }
-
-      // 4. Role-Based Email Validation
       if (role === 'student') {
         if (!email.endsWith('@siswa.um.edu.my')) {
           throw new Error('Student email must end with @siswa.um.edu.my');
         }
       } else {
-        // Basic regex for Alumni email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-          throw new Error('Please enter a valid email address.');
-        }
+        if (!emailRegex.test(email)) throw new Error('Please enter a valid email address.');
       }
 
-      // 5. Attempt Registration
-      // We pass 'programme' only if student, otherwise it is ignored in AuthContext
-      await register(email, password, name, role, programme);
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (authError) throw authError;
+
+      const userProfile = {
+        user_id: authData.user.id,
+        name,
+        email,
+        role,
+        programme: role === 'student' ? programme : null,
+      };
+
+      if (role === 'student') {
+        userProfile.academic_year = academicYear;
+        userProfile.graduation_year = null; 
+      } else if (role === 'alumni') {
+        userProfile.graduation_year = graduationYear;
+        userProfile.academic_year = 'Graduated'; 
+      }
+
+      const { error: dbError } = await supabase.from('users').insert([userProfile]);
+
+      if (dbError) throw dbError;
+
+      // ==========================================================
+      // ✅ FIX START: Force Logout & Redirect to Login
+      // ==========================================================
       
-      // Success
-      if (onRegisterSuccess) onRegisterSuccess();
+      // 1. Alert the user
+      alert("Registration successful! Please log in to continue.");
+
+      // 2. Force Sign Out immediately (kills the auto-session Supabase creates)
+      await supabase.auth.signOut();
+
+      // 3. Switch to Login View instead of triggering success
+      if (onSwitchToLogin) {
+        onSwitchToLogin();
+      }
+      
+      // Note: We removed 'onRegisterSuccess()' because that was likely 
+      // telling your main app "User is logged in, show Dashboard".
+      // ==========================================================
+      // ✅ FIX END
+      // ==========================================================
 
     } catch (err) {
       setError(err.message);
@@ -84,151 +115,118 @@ const Register = ({ onSwitchToLogin, onRegisterSuccess }) => {
 
   return (
     <div style={styles.authContainer}>
-      <h2 style={{ marginBottom: '10px', color: '#111827' }}>Create Account</h2>
-      <p style={{ color: '#6b7280', marginBottom: '20px' }}>
-        Join FuturePath as a Student or Alumni
-      </p>
+      <div style={{ textAlign: 'center', marginBottom: '25px' }}>
+        <h2 style={{color: role === 'alumni' ? '#059669' : '#4F46E5', marginBottom: '10px', fontSize: '24px'}}>
+            Join as {role === 'alumni' ? 'Alumni' : 'Student'}
+        </h2>
+        <p style={{ color: '#6b7280', fontSize: '14px' }}>
+            Create your FuturePath account
+        </p>
+      </div>
 
-      {/* Error Message Box */}
       {error && (
-        <div style={{
-          padding: '12px',
-          backgroundColor: '#fee2e2',
-          color: '#dc2626',
-          borderRadius: '6px',
-          marginBottom: '15px',
-          fontSize: '14px'
-        }}>
+        <div style={{ padding: '12px', backgroundColor: '#fee2e2', color: '#dc2626', borderRadius: '6px', marginBottom: '15px', fontSize: '14px' }}>
           ⚠️ {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit} style={styles.form}>
         
-        {/* 1. ROLE SELECTION */}
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', color: '#374151', fontSize: '14px', fontWeight: '500' }}>
-            I am a...
-          </label>
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            style={{ ...styles.input, backgroundColor: '#f9fafb' }}
-          >
-            <option value="student">Student (Current)</option>
-            <option value="alumni">Alumni (Graduated)</option>
-          </select>
+        {/* Role Toggle */}
+        <div style={{display: 'flex', gap: '10px', marginBottom: '5px'}}>
+            <button type="button" onClick={() => setRole('student')} 
+                style={{
+                    flex:1, padding: '10px', borderRadius: '6px', border: '1px solid #ddd', cursor: 'pointer',
+                    backgroundColor: role === 'student' ? '#EEF2FF' : 'white',
+                    borderColor: role === 'student' ? '#4F46E5' : '#ddd',
+                    color: role === 'student' ? '#4F46E5' : '#666', fontWeight: '500'
+                }}>
+                Student
+            </button>
+            <button type="button" onClick={() => setRole('alumni')} 
+                style={{
+                    flex:1, padding: '10px', borderRadius: '6px', border: '1px solid #ddd', cursor: 'pointer',
+                    backgroundColor: role === 'alumni' ? '#ECFDF5' : 'white',
+                    borderColor: role === 'alumni' ? '#059669' : '#ddd',
+                    color: role === 'alumni' ? '#059669' : '#666', fontWeight: '500'
+                }}>
+                Alumni
+            </button>
         </div>
 
-        {/* 2. FULL NAME */}
-        <div>
-          <label style={{ display: 'block', marginBottom: '5px', color: '#374151', fontSize: '14px' }}>
-            Full Name
-          </label>
-          <input
-            type="text"
-            placeholder="e.g. Ali Bin Abu"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            style={styles.input}
-          />
+        {/* Full Name */}
+        <div style={styles.inputGroup}>
+          <label style={styles.label}>Full Name</label>
+          <input style={styles.input} type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Ali Bin Abu" />
         </div>
 
-        {/* 3. EMAIL ADDRESS */}
-        <div>
-          <label style={{ display: 'block', marginBottom: '5px', color: '#374151', fontSize: '14px' }}>
-            Email Address
-          </label>
-          <input
-            type="email"
-            placeholder={role === 'student' ? "student@siswa.um.edu.my" : "name@example.com"}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={styles.input}
-          />
-          {/* Helper Text for Students */}
-          {role === 'student' && (
-            <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
-              * Must use <strong>@siswa.um.edu.my</strong> email.
-            </p>
-          )}
+        {/* Email */}
+        <div style={styles.inputGroup}>
+          <label style={styles.label}>Email Address</label>
+          <input style={styles.input} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={role === 'student' ? "student@siswa.um.edu.my" : "name@example.com"} />
+          {role === 'student' && <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0 0' }}>* Must use <strong>@siswa.um.edu.my</strong></p>}
         </div>
 
-        {/* 4. PROGRAMME (CONDITIONAL: ONLY FOR STUDENTS) */}
+        {/* Conditional Fields */}
         {role === 'student' && (
-          <div style={{ marginTop: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', color: '#374151', fontSize: '14px' }}>
-              Programme (FCSIT)
-            </label>
-            <select
-              value={programme}
-              onChange={(e) => setProgramme(e.target.value)}
-              style={styles.input}
-            >
-              {umProgrammes.map((prog) => (
-                <option key={prog} value={prog}>{prog}</option>
-              ))}
-            </select>
-          </div>
+            <>
+                <div style={styles.inputGroup}>
+                    <label style={styles.label}>Programme</label>
+                    <select style={styles.input} value={programme} onChange={(e) => setProgramme(e.target.value)}>
+                        {umProgrammes.map((prog) => <option key={prog} value={prog}>{prog}</option>)}
+                    </select>
+                </div>
+                <div style={styles.inputGroup}>
+                    <label style={styles.label}>Academic Year</label>
+                    <select style={styles.input} value={academicYear} onChange={(e) => setAcademicYear(e.target.value)}>
+                        <option value="Year 1">Year 1</option>
+                        <option value="Year 2">Year 2</option>
+                        <option value="Year 3">Year 3</option>
+                        <option value="Year 4">Year 4</option>
+                    </select>
+                </div>
+            </>
         )}
 
-        {/* 5. PASSWORD */}
-        <div style={{ marginTop: '15px', position: 'relative' }}>
-          <label style={{ display: 'block', marginBottom: '5px', color: '#374151', fontSize: '14px' }}>
-            Password
-          </label>
-          <input
-            type={showPassword ? "text" : "password"}
-            placeholder="At least 6 characters"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={styles.input}
-          />
-          {/* View/Unview Toggle */}
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            style={{
-              position: 'absolute',
-              right: '10px',
-              top: '32px',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            {showPassword ? '🙈' : '👁️'}
-          </button>
+        {role === 'alumni' && (
+            <div style={styles.inputGroup}>
+                <label style={styles.label}>Graduation Year</label>
+                <input style={styles.input} type="number" value={graduationYear} onChange={(e) => setGraduationYear(e.target.value)} placeholder="e.g. 2024" />
+            </div>
+        )}
+
+        {/* Password */}
+        <div style={styles.inputGroup}>
+            <label style={styles.label}>Password</label>
+            <div style={{ position: 'relative' }}>
+                <input style={{...styles.input, paddingRight: '40px'}} type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }}>
+                    {showPassword ? '🙈' : '👁️'}
+                </button>
+            </div>
         </div>
 
-        {/* 6. CONFIRM PASSWORD */}
-        <div>
-          <label style={{ display: 'block', marginBottom: '5px', color: '#374151', fontSize: '14px' }}>
-            Confirm Password
-          </label>
-          <input
-            type="password"
-            placeholder="Re-enter password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            style={styles.input}
-          />
+        <div style={styles.inputGroup}>
+          <label style={styles.label}>Confirm Password</label>
+          <input style={styles.input} type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Re-enter password" />
         </div>
 
-        {/* SUBMIT BUTTON */}
         <button 
-          type="submit" 
-          style={{ ...styles.button, opacity: loading ? 0.7 : 1 }}
-          disabled={loading}
+            type="submit" 
+            style={{
+                ...styles.button, 
+                backgroundColor: role === 'alumni' ? '#059669' : '#4F46E5',
+                marginTop: '10px'
+            }} 
+            disabled={loading}
         >
-          {loading ? 'Creating Account...' : 'Register'}
+          {loading ? 'Creating Account...' : `Register as ${role === 'alumni' ? 'Alumni' : 'Student'}`}
         </button>
       </form>
 
-      <p style={{ marginTop: '20px', textAlign: 'center', color: '#6b7280' }}>
+      <p style={{ marginTop: '20px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>
         Already have an account?{' '}
-        <span onClick={onSwitchToLogin} style={styles.link}>
+        <span style={styles.link} onClick={onSwitchToLogin}>
           Log in here
         </span>
       </p>

@@ -1,6 +1,6 @@
 // ============================================================================
 // FILE: src/components/roadmap/RoadmapDisplay.jsx
-// PURPOSE: Displays roadmap, fetches Career Name, and handles errors visible
+// PURPOSE: Displays roadmap with Full Description below title
 // ============================================================================
 
 import React, { useState, useEffect } from 'react';
@@ -8,9 +8,8 @@ import { supabase } from '../../supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import SkillCard from './SkillCard';
 import QuizModal from './QuizModal';
-import { styles } from '../../styles/styles';
 
-const RoadmapDisplay = ({ careerId }) => { // Removed 'careerName' prop, we fetch it now
+const RoadmapDisplay = ({ careerId }) => {
   const { user } = useAuth();
   
   // Data States
@@ -18,14 +17,16 @@ const RoadmapDisplay = ({ careerId }) => { // Removed 'careerName' prop, we fetc
   const [completedSteps, setCompletedSteps] = useState(new Set());
   const [quizScores, setQuizScores] = useState({}); 
   const [roadmapId, setRoadmapId] = useState(null);
-  const [realCareerName, setRealCareerName] = useState('Loading...'); // New State
+  
+  // Header States
+  const [realCareerName, setRealCareerName] = useState('Loading...');
+  const [realCareerDesc, setRealCareerDesc] = useState(''); // NEW STATE
   
   // UI States
   const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState(null); // New State for visible errors
+  const [errorMsg, setErrorMsg] = useState(null);
   const [selectedSkillForQuiz, setSelectedSkillForQuiz] = useState(null);
 
-  // 1. Fetch Everything
   useEffect(() => {
     if (!careerId || !user) return;
 
@@ -33,15 +34,16 @@ const RoadmapDisplay = ({ careerId }) => { // Removed 'careerName' prop, we fetc
       setLoading(true);
       setErrorMsg(null);
       try {
-        // A. Fetch Career Details (Name)
+        // A. Fetch Career Details (Name AND Description)
         const { data: careerData, error: careerError } = await supabase
             .from('career')
-            .select('career_name')
+            .select('career_name, description') // Added description
             .eq('career_id', careerId)
             .single();
         
         if (careerError) throw careerError;
         setRealCareerName(careerData.career_name);
+        setRealCareerDesc(careerData.description); // Set description
 
         // B. Get Roadmap ID
         const { data: roadmapData } = await supabase
@@ -53,7 +55,6 @@ const RoadmapDisplay = ({ careerId }) => { // Removed 'careerName' prop, we fetc
         if (roadmapData) setRoadmapId(roadmapData.roadmap_id);
 
         // C. Fetch Steps & Skills
-        // Note: We request 'description' here. Make sure you ran the SQL Fix!
         const { data: stepsData, error: stepsError } = await supabase
           .from('roadmap_step')
           .select(`
@@ -70,14 +71,22 @@ const RoadmapDisplay = ({ careerId }) => { // Removed 'careerName' prop, we fetc
         setSteps(stepsData || []);
 
         // D. Fetch Progress
+        const validStepIds = new Set((stepsData || []).map(s => s.step_id));
         const { data: progressData } = await supabase
           .from('progress_record')
           .select('step_id')
           .eq('user_id', user.user_id)
           .eq('completion_status', 'completed');
         
-        const completedSet = new Set(progressData?.map(p => p.step_id) || []);
-        setCompletedSteps(completedSet);
+        const filteredCompletedSet = new Set();
+        if (progressData) {
+            progressData.forEach(p => {
+                if (validStepIds.has(p.step_id)) {
+                    filteredCompletedSet.add(p.step_id);
+                }
+            });
+        }
+        setCompletedSteps(filteredCompletedSet);
 
         // E. Fetch Quiz Results
         const { data: quizData } = await supabase
@@ -97,7 +106,7 @@ const RoadmapDisplay = ({ careerId }) => { // Removed 'careerName' prop, we fetc
 
       } catch (err) {
         console.error("Error fetching data:", err);
-        setErrorMsg(err.message); // Show error to user
+        setErrorMsg(err.message);
       } finally {
         setLoading(false);
       }
@@ -107,11 +116,9 @@ const RoadmapDisplay = ({ careerId }) => { // Removed 'careerName' prop, we fetc
   }, [careerId, user]);
 
 
-  // 2. Logic: Handle "Mark Done" Click
   const handleUpdateProgress = async (stepId, skillId) => {
     const isCurrentlyCompleted = completedSteps.has(stepId);
     
-    // --- VALIDATION: CHECK QUIZ SCORE FIRST ---
     if (!isCurrentlyCompleted) {
         const bestScore = quizScores[skillId] || 0;
         if (bestScore < 80) {
@@ -156,54 +163,58 @@ const RoadmapDisplay = ({ careerId }) => { // Removed 'careerName' prop, we fetc
     }
   };
 
-
   const handleQuizPassed = (skill, newScore) => {
       setQuizScores(prev => {
-          // Get the previous best score (or 0 if none)
           const currentBest = prev[skill.skill_id] || 0;
-          
-          // Compare: Is the new score higher?
-          // If yes, save the new score.
-          // If no, keep the old best score.
-          return {
-              ...prev,
-              [skill.skill_id]: Math.max(currentBest, newScore)
-          };
+          return { ...prev, [skill.skill_id]: Math.max(currentBest, newScore) };
       });
-      setSelectedSkillForQuiz(null); // Close modal
+      setSelectedSkillForQuiz(null);
   };
-
-  // --- RENDER ---
 
   if (loading) return <div style={{textAlign:'center', padding:'40px'}}>Loading Roadmap...</div>;
   
-  // ERROR STATE (Shows you exactly what went wrong)
   if (errorMsg) return (
     <div style={{textAlign:'center', padding:'40px', color:'red'}}>
       <h3>⚠️ Error Loading Roadmap</h3>
       <p>{errorMsg}</p>
-      <p style={{fontSize:'12px', color:'#666'}}>Tip: Check your browser console (F12) for details.</p>
     </div>
   );
 
   if (steps.length === 0) return (
     <div style={{textAlign:'center', padding:'40px'}}>
       <h3>No steps found for {realCareerName}.</h3>
-      <p>Please contact the admin or try selecting a different career.</p>
     </div>
   );
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <h2 style={{ textAlign: 'center', marginBottom: '10px' }}>🗺️ {realCareerName}</h2>
+      
+      {/* 1. Header with Title & Description */}
+      <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <h2 style={{ margin: '0 0 15px 0', fontSize: '32px', color: '#111827' }}>
+            🗺️ {realCareerName}
+          </h2>
+          {realCareerDesc && (
+              <p style={{ 
+                  color: '#4b5563', 
+                  fontSize: '16px', 
+                  lineHeight: '1.6', 
+                  maxWidth: '700px', 
+                  margin: '0 auto' 
+              }}>
+                  {realCareerDesc}
+              </p>
+          )}
+      </div>
       
       {/* Completion Badge */}
       {completedSteps.size === steps.length && steps.length > 0 && (
-          <div style={{ backgroundColor: '#d1fae5', color: '#065f46', padding: '10px', borderRadius: '8px', textAlign: 'center', marginBottom: '20px' }}>
+          <div style={{ backgroundColor: '#d1fae5', color: '#065f46', padding: '15px', borderRadius: '8px', textAlign: 'center', marginBottom: '30px' }}>
               🏆 <strong>Roadmap Completed!</strong> Great job mastering these skills.
           </div>
       )}
 
+      {/* Steps List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {steps.map((step, index) => (
           <div key={step.step_id} style={{ position: 'relative' }}>
