@@ -399,5 +399,275 @@ export const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     marginTop: '20px'
+  },
+
+
+  dashboardContainer: {
+    maxWidth: '1200px',       // Limits width so it doesn't stretch on big screens
+    margin: '0 auto',         // Centers the content
+    padding: '30px',
+    width: '100%',
+    boxSizing: 'border-box'
+  },
+
+  dashboardGrid: {
+    display: 'flex',
+    gap: '30px',              // Space between Feed and Sidebar
+    flexWrap: 'wrap',         // Allows stacking on mobile
+    alignItems: 'flex-start'  // Ensures sidebar doesn't stretch to match feed height
+  },
+
+  // Left Column (The Feed)
+  feedSection: {
+    flex: '2',                // Takes up 2/3 of space
+    minWidth: '300px'         // Prevents squishing too small
+  },
+
+  // Right Column (The Sidebar/Form)
+  sidebarSection: {
+    flex: '1',                // Takes up 1/3 of space
+    minWidth: '300px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px'               // Space between Form widget and Guidelines widget
+  },
+
+  // The White Box for Sidebar Widgets
+  sidebarWidget: {
+    backgroundColor: 'white',
+    padding: '25px',
+    borderRadius: '12px',
+    border: '1px solid #e5e7eb',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' // Nice shadow
+  },
+
+  widgetTitle: {
+    fontSize: '18px',
+    fontWeight: '700',
+    marginBottom: '20px',
+    color: '#111827',
+    borderBottom: '1px solid #f3f4f6',
+    paddingBottom: '10px'
+  },
+
+  // Styling for the Job Posts in the Feed
+  postCard: {
+    backgroundColor: 'white',
+    padding: '25px',
+    borderRadius: '12px',
+    marginBottom: '20px',
+    border: '1px solid #e5e7eb',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+  },
+
+  postHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '15px'
+  },
+
+  postTitle: {
+    margin: '10px 0 5px 0',
+    fontSize: '20px',
+    fontWeight: '700',
+    color: '#1f2937'
+  },
+
+  postCompany: {
+    fontSize: '14px',
+    color: '#4b5563',
+    fontWeight: '500'
+  },
+
+  // Badge Styles (Job, Internship, Mentorship)
+  postTypeBadge: {
+    padding: '4px 10px',
+    borderRadius: '6px',
+    fontSize: '11px',
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    color: 'white'
+  },
+  
+  badgeJob: { backgroundColor: '#3b82f6' },       // Blue
+  badgeIntern: { backgroundColor: '#8b5cf6' },    // Purple
+  badgeMentor: { backgroundColor: '#10b981' },    // Green
+
+  guidelinesBox: {
+    backgroundColor: '#ecfdf5', // Light green background
+    padding: '20px',
+    borderRadius: '12px',
+    border: '1px solid #a7f3d0'
+  },
+
+  guidelinesList: {
+    paddingLeft: '20px',
+    fontSize: '14px',
+    color: '#065f46',
+    lineHeight: '1.6'
+  },
+
+  // ===== TAB NAVIGATION =====
+  tabContainer: {
+    display: 'flex',
+    gap: '20px',
+    marginBottom: '30px',
+    borderBottom: '2px solid #e5e7eb',
+    paddingBottom: '0px'
+  },
+
+  tabButton: {
+    padding: '12px 20px',
+    fontSize: '16px',
+    fontWeight: '600',
+    color: '#6b7280',
+    cursor: 'pointer',
+    borderBottom: '3px solid transparent',
+    marginBottom: '-2px', // Overlaps the bottom border
+    transition: 'all 0.2s',
+    backgroundColor: 'transparent',
+    border: 'none', // Reset default button border
+    borderTop: 'none',
+    borderLeft: 'none',
+    borderRight: 'none'
+  },
+
+  activeTab: {
+    color: '#059669', // Green for Alumni theme
+    borderBottom: '3px solid #059669'
+  },
+
+  // ===== ADMIN STYLES =====
+  adminHeader: {
+    backgroundColor: '#dc2626', // Red theme for Admin
+    color: 'white',
+    padding: '20px 40px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+  },
+
+  actionButtonsContainer: {
+    display: 'flex',
+    gap: '10px',
+    marginTop: '15px',
+    borderTop: '1px solid #f3f4f6',
+    paddingTop: '15px'
+  },
+
+  approveButton: {
+    padding: '8px 16px',
+    backgroundColor: '#10b981', // Green
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    fontSize: '14px',
+    flex: 1
+  },
+
+  rejectButton: {
+    padding: '8px 16px',
+    backgroundColor: '#ef4444', // Red
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    fontSize: '14px',
+    flex: 1
+  },
+
+  statusBadge: {
+    padding: '4px 8px',
+    borderRadius: '4px',
+    fontSize: '12px',
+    fontWeight: 'bold',
+    textTransform: 'uppercase'
+  },
+
+  // ===== ANALYTICS DASHBOARD =====
+  statsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: '20px',
+    marginBottom: '30px'
+  },
+
+  statCard: {
+    backgroundColor: 'white',
+    padding: '20px',
+    borderRadius: '12px',
+    border: '1px solid #e5e7eb',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+    textAlign: 'center'
+  },
+
+  statNumber: {
+    fontSize: '32px',
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: '5px'
+  },
+
+  statLabel: {
+    fontSize: '14px',
+    color: '#6b7280',
+    fontWeight: '600',
+    textTransform: 'uppercase'
+  },
+
+  chartsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', // Two columns on large screens
+    gap: '30px',
+    marginBottom: '30px'
+  },
+
+  chartContainer: {
+    backgroundColor: 'white',
+    padding: '25px',
+    borderRadius: '12px',
+    border: '1px solid #e5e7eb',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    minHeight: '350px'
+  },
+
+  chartTitle: {
+    fontSize: '18px',
+    fontWeight: '700',
+    marginBottom: '20px',
+    color: '#374151',
+    borderBottom: '1px solid #f3f4f6',
+    paddingBottom: '10px'
+  },
+
+  // Heatmap Cells
+  heatmapGrid: {
+    display: 'grid',
+    gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', // Skill Name + 4 Cohort Years
+    gap: '2px',
+    marginTop: '20px'
+  },
+
+  heatmapHeader: {
+    padding: '10px',
+    backgroundColor: '#f9fafb',
+    fontWeight: '700',
+    fontSize: '14px',
+    textAlign: 'center'
+  },
+
+  heatmapCell: {
+    padding: '12px',
+    textAlign: 'center',
+    fontSize: '14px',
+    color: 'white',
+    fontWeight: '600',
+    borderRadius: '4px'
   }
 };
