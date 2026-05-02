@@ -8,6 +8,8 @@ import ReactDOM from 'react-dom/client';
 import './App.css'; // <--- ✅ CHANGED: Importing App.css instead of index.css
 import App from './App';
 
+//hi test
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
 root.render(
