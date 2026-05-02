@@ -1,41 +1,64 @@
 // ============================================================================
 // FILE: src/components/roadmap/CareerInput.jsx
-// PURPOSE: Allows users to select a career path from the Database
+// PURPOSE: Select a Career -> Call Python API -> Generate Roadmap
 // ============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { styles } from '../../styles/styles';
-import { supabase } from '../../supabaseClient'; // Import Supabase
+import { useAuth } from '../../context/AuthContext'; // We need user ID for the API
 
 const CareerInput = ({ onCareerSelect }) => {
-  const [selectedCareer, setSelectedCareer] = useState('');
-  const [careers, setCareers] = useState([]); // State to hold DB data
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const [career, setCareer] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  // Fetch careers from Supabase on mount
-  useEffect(() => {
-    const fetchCareers = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('career') // Matches your ERD table 'career'
-          .select('*');
-        
-        if (error) throw error;
-        setCareers(data || []);
-      } catch (error) {
-        console.error('Error fetching careers:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Hardcoded options are safer for demos than free text
+  const careerOptions = [
+    "Software Engineer",
+    "Data Scientist",
+    "Product Manager",
+    "UI/UX Designer",
+    "DevOps Engineer",
+    "Cybersecurity Analyst",
+    "Mobile App Developer",
+    "Cloud Architect",
+    "Game Developer",
+    "Blockchain Developer",
+    "Artificial Intelligence Engineer",
+    "Business Intelligence Analyst"
+  ];
 
-    fetchCareers();
-  }, []);
-
-  const handleSubmit = (e) => {
+  const handleGenerate = async (e) => {
     e.preventDefault();
-    if (selectedCareer) {
-      onCareerSelect(selectedCareer);
+    if (!career) return alert("Please select a career path.");
+    if (!user) return alert("You must be logged in.");
+
+    setLoading(true);
+
+    try {
+      // 1. Call your Python Backend
+      const response = await fetch('http://127.0.0.1:5000/generate-roadmap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            career_title: career,
+            user_id: user.user_id 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // 2. Success! Pass the roadmap ID to the parent to switch views
+        onCareerSelect(data.roadmap_id);
+      } else {
+        alert("Generation failed: " + (data.error || "Unknown error"));
+      }
+    } catch (error) {
+      console.error("API Error:", error);
+      alert("Failed to connect to the generator. Is the Python backend running?");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -45,44 +68,46 @@ const CareerInput = ({ onCareerSelect }) => {
         🎯 Choose Your Dream Career
       </h2>
       <p style={{ color: '#6b7280', marginBottom: '20px' }}>
-        Select a career path to generate your personalized roadmap.
+        Select a role below, and our AI agent will generate a personalized roadmap for you based on industry standards.
       </p>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleGenerate}>
         <div style={{ marginBottom: '20px' }}>
           <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
             I want to become a...
           </label>
           
           <select
-            value={selectedCareer}
-            onChange={(e) => setSelectedCareer(e.target.value)}
+            value={career}
+            onChange={(e) => setCareer(e.target.value)}
             style={{
               width: '100%',
               padding: '12px',
               borderRadius: '6px',
               border: '1px solid #d1d5db',
               backgroundColor: 'white',
-              fontSize: '16px'
+              fontSize: '16px',
+              cursor: 'pointer'
             }}
             disabled={loading}
           >
             <option value="">-- Select a Career --</option>
-            {/* Map over the Supabase data instead of mockData */}
-            {careers.map((career) => (
-              <option key={career.career_id} value={career.career_id}>
-                {career.career_name}
-              </option>
+            {careerOptions.map((option, index) => (
+              <option key={index} value={option}>{option}</option>
             ))}
           </select>
         </div>
 
         <button 
           type="submit" 
-          style={{ ...styles.button, opacity: !selectedCareer ? 0.7 : 1 }}
-          disabled={!selectedCareer || loading}
+          style={{ 
+            ...styles.button, 
+            opacity: (!career || loading) ? 0.7 : 1,
+            cursor: (!career || loading) ? 'not-allowed' : 'pointer'
+          }}
+          disabled={!career || loading}
         >
-          {loading ? 'Loading...' : 'Generate Roadmap 🚀'}
+          {loading ? 'AI is Generating Roadmap...' : 'Generate Roadmap 🚀'}
         </button>
       </form>
     </div>
