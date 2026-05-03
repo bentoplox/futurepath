@@ -61,7 +61,7 @@ const AppContent = () => {
       } else if (viewName === 'employability') {
           setCurrentView('employability');
       } else if (viewName === 'feedback') {
-          setCurrentView('feedback'); // <--- NEW CASE
+          setCurrentView('feedback'); 
       }
   };
 
@@ -93,11 +93,18 @@ const AppContent = () => {
   if (user.role === 'alumni') return <AlumniDashboard user={user} onLogout={logout} />;
 
   // --- STUDENT DASHBOARD ---
+  // --- STUDENT DASHBOARD ---
   return (
     <div style={styles.appContainer}>
       
-      {/* HEADER WITH UPDATED UI */}
-      <div style={styles.header}>
+      {/* HEADER WITH UPDATED UI - SEAMLESS PURPLE */}
+      <div style={{ 
+          ...styles.header, 
+          background: '#4c2882',
+          backgroundImage: 'linear-gradient(135deg, #4c2882 0%, #6b4c9a 100%)',
+          borderBottom: 'none',
+          color: 'white'
+      }}>
         {/* LEFT: Logo & Title */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => setCurrentView('dashboard')}>
            <span style={{ fontSize: '24px' }}>🚀</span>
@@ -112,8 +119,8 @@ const AppContent = () => {
                 onClick={() => setCurrentView('dashboard')}
                 style={{ 
                     cursor: 'pointer', fontSize: '14px', fontWeight: currentView === 'dashboard' ? '700' : '500',
-                    color: currentView === 'dashboard' ? '#4F46E5' : 'white', // Purple text if active, White if not
-                    backgroundColor: currentView === 'dashboard' ? 'white' : 'transparent', // White background if active
+                    color: currentView === 'dashboard' ? '#4c2882' : 'white', 
+                    backgroundColor: currentView === 'dashboard' ? 'white' : 'transparent', 
                     padding: '8px 18px',
                     borderRadius: '20px',
                     transition: 'all 0.2s ease',
@@ -128,7 +135,7 @@ const AppContent = () => {
                 onClick={() => handleNavClick('employability')}
                 style={{ 
                     cursor: 'pointer', fontSize: '14px', fontWeight: currentView === 'employability' ? '700' : '500',
-                    color: currentView === 'employability' ? '#4F46E5' : 'white',
+                    color: currentView === 'employability' ? '#4c2882' : 'white',
                     backgroundColor: currentView === 'employability' ? 'white' : 'transparent',
                     padding: '8px 18px',
                     borderRadius: '20px',
@@ -144,7 +151,7 @@ const AppContent = () => {
                 onClick={() => handleNavClick('alumni_hub')}
                 style={{ 
                     cursor: 'pointer', fontSize: '14px', fontWeight: currentView === 'student_alumni' ? '700' : '500',
-                    color: currentView === 'student_alumni' ? '#4F46E5' : 'white',
+                    color: currentView === 'student_alumni' ? '#4c2882' : 'white',
                     backgroundColor: currentView === 'student_alumni' ? 'white' : 'transparent',
                     padding: '8px 18px',
                     borderRadius: '20px',
@@ -160,7 +167,7 @@ const AppContent = () => {
                 onClick={() => handleNavClick('feedback')}
                 style={{ 
                     cursor: 'pointer', fontSize: '14px', fontWeight: currentView === 'feedback' ? '700' : '500',
-                    color: currentView === 'feedback' ? '#4F46E5' : 'white',
+                    color: currentView === 'feedback' ? '#4c2882' : 'white',
                     backgroundColor: currentView === 'feedback' ? 'white' : 'transparent',
                     padding: '8px 18px',
                     borderRadius: '20px',
@@ -187,21 +194,22 @@ const AppContent = () => {
             fontWeight: '500',
             transition: 'background 0.2s'
         }}>
-            <div style={{width:'24px', height:'24px', background:'white', borderRadius:'50%', color:'#4F46E5', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'bold', fontSize:'12px'}}>
+            <div style={{width:'24px', height:'24px', background:'white', borderRadius:'50%', color:'#4c2882', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'bold', fontSize:'12px'}}>
                 {user.name.charAt(0)}
             </div>
             {user.name.split(' ')[0]} 
         </button>
       </div>
 
-      <div style={{ padding: '20px' }}>
+      {/* DYNAMIC PADDING: Removes the white gap ONLY on the Employability page so the header and banner touch seamlessly */}
+      <div style={{ padding: currentView === 'employability' ? '0' : '20px' }}>
         
         {/* VIEW 1: MAIN DASHBOARD */}
         {currentView === 'dashboard' && <Dashboard onContinueRoadmap={handleContinueRoadmap} onStartNew={() => setCurrentView('select_career')} />}
         
         {/* VIEW 2: CAREER SELECTION */}
         {currentView === 'select_career' && (
-          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <div style={{ maxWidth: '800px', margin: '0 auto', paddingTop: '20px' }}>
             <button onClick={() => setCurrentView('dashboard')} style={{ ...styles.secondaryButton, marginBottom: '20px' }}>← Back to Dashboard</button>
             <CareerInput onCareerSelect={handleCareerSelect} />
           </div>
@@ -209,7 +217,7 @@ const AppContent = () => {
 
         {/* VIEW 3: ROADMAP DISPLAY */}
         {currentView === 'roadmap' && selectedCareerId && (
-          <div>
+          <div style={{ paddingTop: '20px' }}>
             <div style={{ maxWidth: '800px', margin: '0 auto 20px auto' }}>
               <button onClick={() => setCurrentView('dashboard')} style={styles.secondaryButton}>← Back to Dashboard</button>
             </div>

@@ -11,12 +11,14 @@
     "recharts": "^3.7.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "dev": "react-scripts start"
-  },
+  "start": "react-scripts start",
+  "build": "react-scripts build",
+  "test": "react-scripts test",
+  "eject": "react-scripts eject",
+  "start:frontend": "npm start",
+  "start:backend": "cd backend && python app.py",
+  "dev": "concurrently \"npm run start:frontend\" \"npm run start:backend\""
+},
   "eslintConfig": {
     "extends": [
       "react-app"
@@ -33,5 +35,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }
