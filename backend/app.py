@@ -1,18 +1,15 @@
 # ============================================================================
 # FILE: backend/app.py
-# PURPOSE: AI Roadmap (30-Day Versioning) + Automated Quiz Pre-generation
-# MODEL: Local Llama 3 (RTX 3060 Optimized)
-# SEARCH: DuckDuckGo Certificate Search (Live Web)
+# PURPOSE: AI Roadmap + Quizzes using the NEW Google GenAI SDK (Gemini 2.0)
 # ============================================================================
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from supabase import create_client, Client
-from llama_cpp import Llama 
+from google import genai
+from google.genai import types
 import json
-import os
-from datetime import datetime, timedelta, timezone
-from threading import Lock 
+from datetime import datetime, timezone
 from duckduckgo_search import DDGS 
 
 app = Flask(__name__)
@@ -21,40 +18,29 @@ CORS(app)
 # --- CONFIGURATION ---
 SUPABASE_URL = "https://smgjboifsheewiyeupbo.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtZ2pib2lmc2hlZXdpeWV1cGJvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzA0MDc3OSwiZXhwIjoyMDgyNjE2Nzc5fQ.ySJgBXFvZk5xxYzHqR7NfPXrRVGaR-8HrzC_tojuHhc" 
-
-# --- LOCAL AI CONFIGURATION ---
-MODEL_PATH = "./model/meta-llama.gguf" 
+GEMINI_API_KEY = "AIzaSyD56MtTPTVhfBKx6f4ktouSZbP58yc25NE"
 
 try:
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
     
-    print("--- 🤖 INITIALIZING LOCAL AI ---")
-    llm = Llama(
-        model_path=MODEL_PATH,
-        n_gpu_layers=-1, # Uses your RTX 3060
-        n_ctx=2048,      # Context window
-        verbose=False    
-    )
-    print("✅ Local Model Loaded Successfully!")
+    # Initialize the NEW official Gemini Client
+    client = genai.Client(api_key=GEMINI_API_KEY)
     
-    # Thread Lock: Prevents the GPU from crashing if 2 people use the app at once
-    model_lock = Lock()
-
+    print("✅ Supabase and Gemini 2.0 API Initialized Successfully!")
 except Exception as e:
     print(f"❌ Configuration Error: {e}")
 
 # --- HELPER FUNCTIONS ---
 
-def extract_json_array(text):
-    """Cleans AI output to ensure we only get the JSON data."""
-    try:
-        start = text.find('[')
-        end = text.rfind(']') + 1
-        if start != -1 and end != 0:
-            return text[start:end]
-        return text
-    except Exception:
-        return text
+def clean_json_response(raw_text):
+    """Safely removes markdown backticks if Gemini accidentally includes them."""
+    raw_text = raw_text.strip()
+    if raw_text.startswith("```"):
+        lines = raw_text.split('\n')
+        if lines[0].startswith("```"): lines = lines[1:]
+        if lines[-1].startswith("```"): lines = lines[:-1]
+        raw_text = '\n'.join(lines).strip()
+    return raw_text
 
 def get_real_certificate_resource(skill_name):
     """Searches the live web for a FREE course with a certificate."""
@@ -72,42 +58,44 @@ def get_real_certificate_resource(skill_name):
         pass
     return {
         "title": f"Search for {skill_name} Free Certificate",
-        "link": f"https://duckduckgo.com/?q={skill_name.replace(' ', '+')}+free+course+with+certificate",
+        "link": f"[https://duckduckgo.com/?q=](https://duckduckgo.com/?q=){skill_name.replace(' ', '+')}+free+course+with+certificate",
         "type": "Web Search"
     }
 
 def internal_generate_quiz(topic):
-    """Generates a quiz for a skill and saves it to Supabase."""
-    # check if we already have this quiz
+    """Generates a quiz using Gemini 2.0 and saves it to Supabase."""
     existing = supabase.table('ai_quizzes').select("*").eq('topic', topic).execute()
     if existing.data:
-        print(f"⏩ Quiz for '{topic}' already exists. Skipping generation.")
+        print(f"⏩ Quiz for '{topic}' already cached. Skipping.")
         return
 
-    print(f"🧠 [AI] Generating quiz for: {topic}...")
+    print(f"🧠 [Gemini] Generating quiz for: {topic}...")
     
-    system_prompt = "You are an expert quiz generator. Return ONLY a raw JSON array of 5 questions. No chat."
-    user_prompt = f"""Create a 5-question multiple-choice quiz for: "{topic}".
-    Format: [ {{"question": "...", "options": ["A", "B", "C", "D"], "correct_answer": "A"}} ]"""
+    prompt = f"""Create a 5-question multiple-choice quiz for the technical skill: "{topic}".
+    Return ONLY a valid JSON array matching this exact schema:
+    [ {{"question": "string", "options": ["A", "B", "C", "D"], "correct_answer": "Exact string of correct option"}} ]"""
 
     try:
-        with model_lock:
-            response = llm.create_chat_completion(
-                messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
-                max_tokens=800,
-                temperature=0.2
+        # ⚡ Upgraded to gemini-2.0-flash to fix the 404 error
+        response = client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
             )
+        )
         
-        raw_text = response['choices'][0]['message']['content']
-        quiz_data = json.loads(extract_json_array(raw_text))
+        # Clean markdown if present and parse
+        clean_text = clean_json_response(response.text)
+        quiz_data = json.loads(clean_text)
 
         supabase.table('ai_quizzes').insert({"topic": topic, "questions": quiz_data}).execute()
         print(f"✅ Quiz for '{topic}' saved.")
     except Exception as e:
-        print(f"❌ Quiz Pre-gen failed for {topic}: {e}")
+        print(f"❌ Quiz generation failed for {topic}: {e}")
 
 # ---------------------------------------------------------
-# 1. ROADMAP GENERATOR (Generates everything at once)
+# 1. ROADMAP GENERATOR 
 # ---------------------------------------------------------
 @app.route('/generate-roadmap', methods=['POST'])
 def generate_roadmap():
@@ -120,7 +108,7 @@ def generate_roadmap():
 
     print(f"🚀 STARTING ROADMAP: {career_title}")
 
-    # A. CHECK VERSIONING (30 Days)
+    # --- CACHING ROADMAPS (30 Days) ---
     existing = supabase.table('ai_roadmaps').select("*").eq('title', career_title).eq('is_active', True).execute()
     
     current_roadmap = None
@@ -128,25 +116,31 @@ def generate_roadmap():
         current_roadmap = existing.data[0]
         created_at = datetime.fromisoformat(current_roadmap['created_at'].replace('Z', '+00:00'))
         if (datetime.now(timezone.utc) - created_at).days < 30:
-            print("✅ Found fresh roadmap in DB. Linking user...")
+            print("✅ Found fresh cached roadmap in DB. Linking user...")
             link_user_to_roadmap(user_id, current_roadmap['id'])
             steps_res = supabase.table('ai_roadmap_steps').select("*").eq('roadmap_id', current_roadmap['id']).order('step_order').execute()
             return jsonify({"success": True, "roadmap_id": current_roadmap['id'], "steps": steps_res.data})
 
-    # B. GENERATE SKILLS (Local AI)
-    system_prompt = "You are a Technical Recruiter in Malaysia. Return ONLY a raw JSON array of 5 skills."
-    user_prompt = f"Create a career roadmap for '{career_title}'. Identify 5 sequential skills. Format: [{{'title': '...', 'description': '...'}}]"
+    # --- GEMINI GENERATION ---
+    prompt = f"""You are a Technical Recruiter. Create a career roadmap for '{career_title}'. Identify 5 sequential skills needed to master this role. 
+    Return ONLY a valid JSON array matching this exact schema:
+    [ {{"title": "Skill Name", "description": "Short explanation of why it is needed"}} ]"""
     
     try:
-        print("🤖 [AI] Thinking of roadmap steps...")
-        with model_lock:
-            response = llm.create_chat_completion(
-                messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
-                max_tokens=800,
-                temperature=0.3
-            )
+        print("🤖 [Gemini] Thinking of roadmap steps...")
         
-        steps = json.loads(extract_json_array(response['choices'][0]['message']['content']))
+        # ⚡ Upgraded to gemini-2.0-flash to fix the 404 error
+        response = client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+            )
+        )
+        
+        # ⚡ Added robust markdown cleaner to prevent 500 crashes
+        clean_text = clean_json_response(response.text)
+        steps = json.loads(clean_text)
         
         # Save Roadmap Metadata
         new_version = (current_roadmap['version'] + 1) if current_roadmap else 1
@@ -155,19 +149,17 @@ def generate_roadmap():
         
         res = supabase.table('ai_roadmaps').insert({
             "title": career_title, 
-            "description": f"Market path v{new_version}", 
+            "description": f"Curated industry learning path v{new_version}", 
             "version": new_version, 
             "is_active": True
         }).execute()
         new_id = res.data[0]['id']
 
-        # C. THE BIG LOOP: Resources + Quizzes
+        # Loop through steps to find resources and pre-gen quizzes
         for i, step in enumerate(steps):
-            # 1. Search Web for Certificate
-            print(f"🌐 [Web] Finding certificate for: {step['title']}")
+            print(f"🌐 [Web] Finding resource for: {step['title']}")
             res_data = get_real_certificate_resource(step['title'])
 
-            # 2. Save Step to DB
             supabase.table('ai_roadmap_steps').insert({
                 "roadmap_id": new_id, 
                 "step_order": i + 1, 
@@ -178,19 +170,17 @@ def generate_roadmap():
                 "resource_type": res_data['type']
             }).execute()
 
-            # 3. PRE-GENERATE QUIZ (The "Instant" Feature)
             internal_generate_quiz(step['title'])
 
         link_user_to_roadmap(user_id, new_id)
         
-        # Return final data to frontend
         final_steps = supabase.table('ai_roadmap_steps').select("*").eq('roadmap_id', new_id).order('step_order').execute()
         print(f"🎉 Roadmap for {career_title} is FULLY complete!")
         return jsonify({"success": True, "roadmap_id": new_id, "steps": final_steps.data})
 
     except Exception as e:
         print(f"❌ Error: {e}")
-        return jsonify({"error": "Failed to build full roadmap system."}), 500
+        return jsonify({"error": str(e)}), 500
 
 def link_user_to_roadmap(user_id, roadmap_id):
     linked = supabase.table('user_ai_roadmaps').select("*").eq('user_id', user_id).eq('roadmap_id', roadmap_id).execute()
@@ -198,25 +188,25 @@ def link_user_to_roadmap(user_id, roadmap_id):
         supabase.table('user_ai_roadmaps').insert({"user_id": user_id, "roadmap_id": roadmap_id}).execute()
 
 # ---------------------------------------------------------
-# 2. QUIZ LOADER (Instant)
+# 2. QUIZ LOADER 
 # ---------------------------------------------------------
 @app.route('/generate-quiz', methods=['POST'])
 def generate_quiz():
     topic = request.json.get('topic') 
     if not topic: return jsonify({"error": "Topic required"}), 400
 
-    # Because we pre-generate during roadmap creation, this is almost always instant
     existing = supabase.table('ai_quizzes').select("*").eq('topic', topic).execute()
-    
     if existing.data:
-        print(f"⚡ Instant Load: Quiz for '{topic}' retrieved from DB.")
         return jsonify({"success": True, "quiz": existing.data[0]['questions']})
 
-    # Fallback if it wasn't pre-generated
+    # If not pre-generated, generate it on the fly
     internal_generate_quiz(topic)
     updated = supabase.table('ai_quizzes').select("*").eq('topic', topic).execute()
+    
+    if not updated.data:
+        return jsonify({"success": False, "error": "Failed to generate quiz."}), 500
+
     return jsonify({"success": True, "quiz": updated.data[0]['questions']})
 
 if __name__ == '__main__':
-    # debug=False is important so the local AI model doesn't load twice!
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=True)

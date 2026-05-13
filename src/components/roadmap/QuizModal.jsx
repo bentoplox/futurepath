@@ -1,26 +1,26 @@
 // ============================================================================
 // FILE: src/components/roadmap/QuizModal.jsx
-// PURPOSE: Dynamic AI Quiz with Review Feature
+// PURPOSE: Dynamic AI Quiz with Review Feature & Smart Grading Fix
 // ============================================================================
 
 import React, { useState, useEffect } from 'react';
 import { styles } from '../../styles/styles';
 
 const QuizModal = ({ skillTitle, onClose, onQuizPass }) => {
-  // State management
   const [questions, setQuestions] = useState([]); 
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState(null); 
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState({}); 
   
-  // View States
   const [showResults, setShowResults] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
   const [score, setScore] = useState(0);
 
-  // 1. FETCH QUIZ FROM PYTHON API
   useEffect(() => {
     const fetchQuiz = async () => {
+      setLoading(true);
+      setApiError(null);
       try {
         const response = await fetch('http://127.0.0.1:5000/generate-quiz', {
             method: 'POST',
@@ -32,19 +32,39 @@ const QuizModal = ({ skillTitle, onClose, onQuizPass }) => {
         if (data.success) {
             setQuestions(data.quiz);
         } else {
-            throw new Error("Failed to generate quiz");
+            throw new Error(data.error || "Failed to generate quiz");
         }
       } catch (err) {
         console.error("Error fetching quiz:", err);
+        setApiError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
     if (skillTitle) fetchQuiz();
-  }, [skillTitle]);
+  }, [skillTitle]); 
 
-  // 2. QUIZ LOGIC
+  // ⚡ THE SMART GRADER: Handles "B", "B. text", or exact matches
+  const isCorrectMatch = (optionText, optionIndex, aiCorrectAnswer) => {
+      if (!aiCorrectAnswer) return false;
+      
+      const target = String(aiCorrectAnswer).trim().toLowerCase();
+      const opt = String(optionText).trim().toLowerCase();
+      const letter = String.fromCharCode(97 + optionIndex); // 0 -> a, 1 -> b, etc.
+      
+      // 1. Exact match
+      if (opt === target) return true;
+      
+      // 2. Did the AI just return the letter? (e.g., "b" or "b.")
+      if (target === letter || target === `${letter}.`) return true;
+      
+      // 3. Did the AI include the letter in the string? (e.g., "b. to output text")
+      if (target.includes(opt) || opt.includes(target)) return true;
+      
+      return false;
+  };
+
   const handleAnswerSelect = (answerIndex) => {
     setSelectedAnswers({ ...selectedAnswers, [currentQuestion]: answerIndex });
   };
@@ -52,9 +72,13 @@ const QuizModal = ({ skillTitle, onClose, onQuizPass }) => {
   const handleSubmit = () => {
     let correctCount = 0;
     questions.forEach((q, index) => {
-        // The API returns the full string of the answer, so we compare strings
         const selectedOptionText = q.options[selectedAnswers[index]]; 
-        if (selectedOptionText === q.correct_answer) correctCount++;
+        const selectedOptionIndex = selectedAnswers[index];
+        
+        // Use our new smart grader
+        if (isCorrectMatch(selectedOptionText, selectedOptionIndex, q.correct_answer)) {
+            correctCount++;
+        }
     });
 
     const percentage = Math.round((correctCount / questions.length) * 100);
@@ -63,25 +87,33 @@ const QuizModal = ({ skillTitle, onClose, onQuizPass }) => {
   };
 
   const handleFinish = () => {
-    // Only close if passed
-    if (score >= 66) { // 2 out of 3 is 66%
+    if (score >= 66) { 
         onQuizPass();
     } else {
         onClose();
     }
   };
 
-  // --- RENDER ---
+  // --- RENDER STATES ---
   if (loading) return (
     <div style={styles.modalOverlay}>
         <div style={styles.modalContent}>
             <h3>🧠 AI is generating your quiz...</h3>
-            <p>Verifying Malaysian market standards for {skillTitle}</p>
+            <p>Verifying market standards for {skillTitle}</p>
         </div>
     </div>
   );
 
-  // VIEW 1: REVIEW ANSWERS SCREEN
+  if (apiError) return (
+    <div style={styles.modalOverlay}>
+        <div style={styles.modalContent}>
+            <h3 style={{ color: '#ef4444' }}>❌ Error Generating Quiz</h3>
+            <p>{apiError}</p>
+            <button onClick={onClose} style={{...styles.secondaryButton, width:'100%', marginTop:'15px'}}>Close & Try Again</button>
+        </div>
+    </div>
+  );
+
   if (isReviewing) {
     return (
       <div style={styles.modalOverlay}>
@@ -90,16 +122,17 @@ const QuizModal = ({ skillTitle, onClose, onQuizPass }) => {
             <div style={{display: 'flex', flexDirection: 'column', gap: '30px'}}>
                 {questions.map((q, qIndex) => {
                     const userSelectedIdx = selectedAnswers[qIndex];
-                    const userSelectedText = q.options[userSelectedIdx];
-                    const isCorrect = userSelectedText === q.correct_answer;
-
+                    
                     return (
                         <div key={qIndex} style={{borderBottom: '1px solid #eee', paddingBottom: '20px'}}>
                             <p style={{fontWeight: 'bold', marginBottom: '10px'}}>{qIndex + 1}. {q.question}</p>
                             <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
                                 {q.options.map((opt, optIdx) => {
                                     const isSelected = userSelectedIdx === optIdx;
-                                    const isTheCorrectAnswer = opt === q.correct_answer;
+                                    
+                                    // Use smart grader for the review screen too!
+                                    const isTheCorrectAnswer = isCorrectMatch(opt, optIdx, q.correct_answer);
+                                    
                                     let bgColor = isTheCorrectAnswer ? '#dcfce7' : (isSelected ? '#fee2e2' : 'white');
                                     let borderColor = isTheCorrectAnswer ? '#16a34a' : (isSelected ? '#dc2626' : '#ddd');
 
@@ -125,9 +158,8 @@ const QuizModal = ({ skillTitle, onClose, onQuizPass }) => {
     );
   }
 
-  // VIEW 2: RESULTS SCREEN
   if (showResults) {
-    const passed = score >= 66; // 66% (2/3 questions)
+    const passed = score >= 66;
     return (
       <div style={styles.modalOverlay}>
         <div style={styles.modalContent}>
@@ -149,7 +181,6 @@ const QuizModal = ({ skillTitle, onClose, onQuizPass }) => {
     );
   }
 
-  // VIEW 3: QUESTION SCREEN
   const question = questions[currentQuestion];
   return (
     <div style={styles.modalOverlay}>
