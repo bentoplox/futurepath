@@ -1,0 +1,32 @@
+[
+  {
+    "career_name": "Software Engineer",
+    "quizzes": [
+      {"question": "Which Git command saves your changes to the local repository?", "options": ["git push", "git commit", "git add", "git pull"], "correct_answer": "git commit"},
+      {"question": "What is the primary purpose of a RESTful API?", "options": ["Styling a webpage", "Storing data locally", "Allowing software systems to communicate", "Compiling code"], "correct_answer": "Allowing software systems to communicate"},
+      {"question": "What does CSS stand for?", "options": ["Computer Style Sheets", "Cascading Style Sheets", "Creative Style System", "Cascading Simple Sheets"], "correct_answer": "Cascading Style Sheets"},
+      {"question": "In CI/CD, what does 'CI' stand for?", "options": ["Code Inspection", "Cloud Integration", "Continuous Integration", "Continuous Iteration"], "correct_answer": "Continuous Integration"},
+      {"question": "Which of the following is a backend language?", "options": ["HTML", "CSS", "React", "Node.js"], "correct_answer": "Node.js"}
+    ]
+  },
+  {
+    "career_name": "Data Scientist",
+    "quizzes": [
+      {"question": "Which Python library is primarily used for data manipulation?", "options": ["Django", "Pandas", "Flask", "React"], "correct_answer": "Pandas"},
+      {"question": "In statistics, what represents the middle value of a sorted dataset?", "options": ["Mean", "Mode", "Variance", "Median"], "correct_answer": "Median"},
+      {"question": "Which algorithm predicts a continuous numerical value?", "options": ["Linear Regression", "Logistic Regression", "K-Means", "Decision Tree"], "correct_answer": "Linear Regression"},
+      {"question": "What does SQL stand for?", "options": ["Structured Query Language", "Strong Question Language", "Sequential Query Logic", "System Query Language"], "correct_answer": "Structured Query Language"},
+      {"question": "What is the purpose of 'Train-Test Split'?", "options": ["To run code faster", "To evaluate model performance on unseen data", "To increase dataset size", "To deploy the model"], "correct_answer": "To evaluate model performance on unseen data"}
+    ]
+  },
+  {
+    "career_name": "Cybersecurity Analyst",
+    "quizzes": [
+      {"question": "What does the 'C' in the CIA Triad stand for?", "options": ["Control", "Confidentiality", "Cyber", "Compliance"], "correct_answer": "Confidentiality"},
+      {"question": "Which protocol is used to securely browse websites?", "options": ["HTTP", "FTP", "HTTPS", "Telnet"], "correct_answer": "HTTPS"},
+      {"question": "What is a DDOS attack?", "options": ["Downloading Data Over Servers", "Distributed Denial of Service", "Domain Denial of System", "Direct Data Security"], "correct_answer": "Distributed Denial of Service"},
+      {"question": "What is the process of scrambling data to make it unreadable?", "options": ["Hashing", "Encoding", "Encryption", "Steganography"], "correct_answer": "Encryption"},
+      {"question": "What is a 'Phishing' attack?", "options": ["Hacking a router", "Tricking users into revealing sensitive information", "Injecting SQL code", "Bypassing a firewall"], "correct_answer": "Tricking users into revealing sensitive information"}
+    ]
+  }
+]

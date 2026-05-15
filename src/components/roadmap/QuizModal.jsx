@@ -1,12 +1,12 @@
 // ============================================================================
 // FILE: src/components/roadmap/QuizModal.jsx
-// PURPOSE: Dynamic AI Quiz with Review Feature & Smart Grading Fix
+// PURPOSE: Fetches Database Quizzes with Review Feature & Smart Grading
 // ============================================================================
 
 import React, { useState, useEffect } from 'react';
 import { styles } from '../../styles/styles';
 
-const QuizModal = ({ skillTitle, onClose, onQuizPass }) => {
+const QuizModal = ({ skillId, onClose, onQuizPass }) => {
   const [questions, setQuestions] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState(null); 
@@ -22,17 +22,14 @@ const QuizModal = ({ skillTitle, onClose, onQuizPass }) => {
       setLoading(true);
       setApiError(null);
       try {
-        const response = await fetch('http://127.0.0.1:5000/generate-quiz', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ topic: skillTitle })
-        });
+        // ⚡ FETCH FROM NEW GET ROUTE USING SKILL ID
+        const response = await fetch(`http://127.0.0.1:5000/api/quiz/${skillId}`);
         const data = await response.json();
 
         if (data.success) {
-            setQuestions(data.quiz);
+            setQuestions(data.questions); // Updated to match the new Flask response
         } else {
-            throw new Error(data.error || "Failed to generate quiz");
+            throw new Error(data.error || "Failed to load quiz");
         }
       } catch (err) {
         console.error("Error fetching quiz:", err);
@@ -42,8 +39,8 @@ const QuizModal = ({ skillTitle, onClose, onQuizPass }) => {
       }
     };
 
-    if (skillTitle) fetchQuiz();
-  }, [skillTitle]); 
+    if (skillId) fetchQuiz();
+  }, [skillId]); 
 
   // ⚡ THE SMART GRADER: Handles "B", "B. text", or exact matches
   const isCorrectMatch = (optionText, optionIndex, aiCorrectAnswer) => {
@@ -75,7 +72,6 @@ const QuizModal = ({ skillTitle, onClose, onQuizPass }) => {
         const selectedOptionText = q.options[selectedAnswers[index]]; 
         const selectedOptionIndex = selectedAnswers[index];
         
-        // Use our new smart grader
         if (isCorrectMatch(selectedOptionText, selectedOptionIndex, q.correct_answer)) {
             correctCount++;
         }
@@ -98,8 +94,8 @@ const QuizModal = ({ skillTitle, onClose, onQuizPass }) => {
   if (loading) return (
     <div style={styles.modalOverlay}>
         <div style={styles.modalContent}>
-            <h3>🧠 AI is generating your quiz...</h3>
-            <p>Verifying market standards for {skillTitle}</p>
+            <h3>📥 Loading Certification Exam...</h3>
+            <p>Retrieving questions from the database...</p>
         </div>
     </div>
   );
@@ -107,7 +103,7 @@ const QuizModal = ({ skillTitle, onClose, onQuizPass }) => {
   if (apiError) return (
     <div style={styles.modalOverlay}>
         <div style={styles.modalContent}>
-            <h3 style={{ color: '#ef4444' }}>❌ Error Generating Quiz</h3>
+            <h3 style={{ color: '#ef4444' }}>❌ Error Loading Quiz</h3>
             <p>{apiError}</p>
             <button onClick={onClose} style={{...styles.secondaryButton, width:'100%', marginTop:'15px'}}>Close & Try Again</button>
         </div>
@@ -129,8 +125,6 @@ const QuizModal = ({ skillTitle, onClose, onQuizPass }) => {
                             <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
                                 {q.options.map((opt, optIdx) => {
                                     const isSelected = userSelectedIdx === optIdx;
-                                    
-                                    // Use smart grader for the review screen too!
                                     const isTheCorrectAnswer = isCorrectMatch(opt, optIdx, q.correct_answer);
                                     
                                     let bgColor = isTheCorrectAnswer ? '#dcfce7' : (isSelected ? '#fee2e2' : 'white');
@@ -185,7 +179,7 @@ const QuizModal = ({ skillTitle, onClose, onQuizPass }) => {
   return (
     <div style={styles.modalOverlay}>
       <div style={styles.modalContent}>
-        <h2 style={{ marginBottom: '10px' }}>📝 Quiz: {skillTitle}</h2>
+        <h2 style={{ marginBottom: '10px' }}>📝 Certification Exam</h2>
         <p style={{color:'#666', fontSize:'14px', marginBottom:'20px'}}>Question {currentQuestion + 1} of {questions.length}</p>
         <div style={{height:'6px', background:'#e5e7eb', borderRadius:'3px', marginBottom:'30px', overflow:'hidden'}}>
             <div style={{height:'100%', background:'#6366f1', width:`${((currentQuestion+1)/questions.length)*100}%`, transition:'width 0.3s'}} />

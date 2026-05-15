@@ -1,6 +1,6 @@
 // ============================================================================
 // FILE: src/components/dashboard/AdminDashboard.jsx
-// PURPOSE: Admin Command Center (Analytics + Moderation) - UM Premium UI
+// PURPOSE: Admin Command Center (Analytics, Moderation, Content Sync)
 // ============================================================================
 
 import React, { useState, useEffect } from 'react';
@@ -13,6 +13,10 @@ const AdminDashboard = ({ user, onLogout }) => {
   const [posts, setPosts] = useState([]);
   const [stats, setStats] = useState({ students: 0, alumni: 0, pendingPosts: 0 });
   const [loading, setLoading] = useState(true);
+
+  // ⚡ NEW: States for Content Sync (FR5)
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState(null);
 
   // --- MOCK DATA FOR SKILLS HEATMAP ---
   const skillHeatmapData = [
@@ -48,6 +52,32 @@ const AdminDashboard = ({ user, onLogout }) => {
     if (!window.confirm(`Mark post as ${newStatus}?`)) return;
     const { error } = await supabase.from('alumni_posts').update({ status: newStatus }).eq('id', postId);
     if (!error) fetchData(); 
+  };
+
+  // ⚡ NEW: THE INTERNAL API SYNC TRIGGER (FR5.1)
+  const handleContentSync = async () => {
+      if (!window.confirm("This will trigger the background AI worker to populate the database. Proceed?")) return;
+      
+      setSyncing(true);
+      setSyncMessage(null);
+      
+      try {
+          const response = await fetch('http://127.0.0.1:5000/api/admin/sync', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+          });
+          const data = await response.json();
+          
+          if (data.success) {
+              setSyncMessage({ type: 'success', text: "✅ Background generation started! Check your python terminal." });
+          } else {
+              setSyncMessage({ type: 'error', text: `❌ Sync Failed: ${data.error}` });
+          }
+      } catch (err) {
+          setSyncMessage({ type: 'error', text: "❌ Connection to backend failed. Is Flask running?" });
+      } finally {
+          setSyncing(false);
+      }
   };
 
   const getHeatmapColor = (score) => {
@@ -114,7 +144,8 @@ const AdminDashboard = ({ user, onLogout }) => {
               { id: 'overview', label: '📊 Overview' },
               { id: 'employability', label: '📈 Employability' },
               { id: 'skills', label: '🎯 Skills Gap' },
-              { id: 'moderation', label: `🛡️ Moderation ${stats.pendingPosts > 0 ? `(${stats.pendingPosts})` : ''}` }
+              { id: 'moderation', label: `🛡️ Moderation ${stats.pendingPosts > 0 ? `(${stats.pendingPosts})` : ''}` },
+              { id: 'content', label: '🗄️ Content Engine' } // ⚡ NEW TAB
             ].map((tab) => (
               <button 
                   key={tab.id}
@@ -184,14 +215,12 @@ const AdminDashboard = ({ user, onLogout }) => {
                     
                     {/* HEATMAP GRID */}
                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', gap: '2px', backgroundColor: '#e5e7eb', border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
-                        {/* Header Row */}
                         <div style={{ backgroundColor: '#f9fafb', padding: '12px', fontWeight: 'bold', color: '#4b5563', fontSize: '13px', textTransform: 'uppercase' }}>Technical Skill</div>
                         <div style={{ backgroundColor: '#f9fafb', padding: '12px', fontWeight: 'bold', color: '#4b5563', fontSize: '13px', textTransform: 'uppercase', textAlign: 'center' }}>Year 1</div>
                         <div style={{ backgroundColor: '#f9fafb', padding: '12px', fontWeight: 'bold', color: '#4b5563', fontSize: '13px', textTransform: 'uppercase', textAlign: 'center' }}>Year 2</div>
                         <div style={{ backgroundColor: '#f9fafb', padding: '12px', fontWeight: 'bold', color: '#4b5563', fontSize: '13px', textTransform: 'uppercase', textAlign: 'center' }}>Year 3</div>
                         <div style={{ backgroundColor: '#f9fafb', padding: '12px', fontWeight: 'bold', color: '#4b5563', fontSize: '13px', textTransform: 'uppercase', textAlign: 'center' }}>Year 4</div>
 
-                        {/* Data Rows */}
                         {skillHeatmapData.map((row, index) => (
                             <React.Fragment key={index}>
                                 <div style={{ backgroundColor: 'white', padding: '15px 12px', fontWeight: '600', color: '#374151' }}>{row.skill}</div>
@@ -296,6 +325,54 @@ const AdminDashboard = ({ user, onLogout }) => {
                             </div>
                         </div>
                     ))
+                )}
+            </div>
+        )}
+
+        {/* === ⚡ NEW TAB 5: CONTENT ENGINE === */}
+        {activeTab === 'content' && (
+            <div style={{ maxWidth: '800px', margin: '0 auto', backgroundColor: 'white', borderRadius: '12px', padding: '40px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderTop: `4px solid ${umBlue}` }}>
+                <h3 style={{ fontSize: '24px', fontFamily: 'Georgia, serif', color: '#111827', marginBottom: '10px' }}>Database Seeder Engine</h3>
+                <p style={{ color: '#6b7280', fontSize: '15px', marginBottom: '30px', lineHeight: '1.6' }}>
+                    This module fulfills <strong>FR5.1 & FR5.2</strong>. By clicking the sync button below, the system will trigger a background AI worker to fetch and store skills, roadmaps, and resources into the Supabase database. This process is rate-limited to ensure system stability.
+                </p>
+                
+                <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '30px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                        <span style={{ fontSize: '20px' }}>🤖</span>
+                        <span style={{ fontWeight: '600', color: '#334155' }}>Script Worker:</span>
+                        <code style={{ backgroundColor: '#e2e8f0', padding: '4px 8px', borderRadius: '4px', fontSize: '13px', color: '#0f172a' }}>background_generator.py</code>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '20px' }}>🗄️</span>
+                        <span style={{ fontWeight: '600', color: '#334155' }}>Destination:</span>
+                        <span style={{ color: '#0f172a', fontSize: '14px' }}>Supabase (Tables: career, skill, roadmap_step, learning_resource)</span>
+                    </div>
+                </div>
+
+                <button 
+                    onClick={handleContentSync}
+                    disabled={syncing}
+                    style={{ 
+                        width: '100%', padding: '16px', background: umBlue, color: 'white', 
+                        border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', 
+                        cursor: syncing ? 'not-allowed' : 'pointer', opacity: syncing ? 0.7 : 1,
+                        boxShadow: '0 4px 6px rgba(30, 58, 138, 0.2)', transition: 'background 0.2s'
+                    }}
+                >
+                    {syncing ? '⏳ Starting Worker...' : '🔄 Execute Offline Data Sync'}
+                </button>
+
+                {syncMessage && (
+                    <div style={{ 
+                        marginTop: '20px', padding: '15px', borderRadius: '8px', 
+                        backgroundColor: syncMessage.type === 'success' ? '#dcfce7' : '#fee2e2',
+                        color: syncMessage.type === 'success' ? '#166534' : '#991b1b',
+                        border: `1px solid ${syncMessage.type === 'success' ? '#bbf7d0' : '#fecaca'}`,
+                        fontWeight: '500', textAlign: 'center'
+                    }}>
+                        {syncMessage.text}
+                    </div>
                 )}
             </div>
         )}

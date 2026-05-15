@@ -33,17 +33,12 @@ const AppContent = () => {
   const [showRegisterScreen, setShowRegisterScreen] = useState(false);
   const [registerRole, setRegisterRole] = useState('student');
 
-  const handleCareerSelect = async (careerId) => {
+ const handleCareerSelect = (careerId) => {
+    // 1. Save the ID of the career they picked
     setSelectedCareerId(careerId);
+    
+    // 2. Change the screen to show the Roadmap UI
     setCurrentView('roadmap');
-    if (user) {
-      try {
-        const { data } = await supabase.from('roadmap').select('*').eq('user_id', user.user_id).eq('career_id', careerId);
-        if (!data || data.length === 0) {
-          await supabase.from('roadmap').insert([{ user_id: user.user_id, career_id: careerId, status: 'active' }]);
-        }
-      } catch (err) { console.error(err); }
-    }
   };
 
   const handleContinueRoadmap = (careerId) => {
