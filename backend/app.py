@@ -26,15 +26,27 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 def admin_sync_content():
     try:
         print("[ADMIN] Requested AI Database Generation.")
+        
         def run_background_script():
-            subprocess.run([sys.executable, "background_generator.py"])
+            print(f"[WORKER] Starting background_generator.py using {sys.executable}...")
+            try:
+                # By NOT capturing output, it streams directly to the Flask terminal in real-time
+                subprocess.run(
+                    [sys.executable, "background_generator.py"], 
+                    check=True
+                )
+                print("[WORKER] Script finished successfully.")
+            except subprocess.CalledProcessError as e:
+                print(f"[WORKER] Script failed. Check logs above.")
+            except Exception as e:
+                print(f"[WORKER] Unexpected error: {str(e)}")
 
         thread = threading.Thread(target=run_background_script)
         thread.start()
         
         return jsonify({
             "success": True, 
-            "message": "AI Generation started in the background!"
+            "message": "AI Generation started in the background! Check your python terminal."
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500

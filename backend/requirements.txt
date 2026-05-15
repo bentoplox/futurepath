@@ -1,0 +1,9 @@
+flask
+flask-cors
+supabase
+openai
+python-dotenv
+groq
+langchain-google-genai
+langchain-core
+langchain-groq

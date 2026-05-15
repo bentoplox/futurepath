@@ -3,25 +3,80 @@
 # PURPOSE: Rate-Limit-Safe AI Content Generator (Powered by Groq / Llama 3)
 # ============================================================================
 
+import os
 import sys
 import json
 import time
 from supabase import create_client, Client
-from groq import Groq
+from openai import OpenAI
+from dotenv import load_dotenv
+
+# LangChain / Gemini / Groq Imports
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
+from langchain_core.messages import HumanMessage
 
 # 🔥 WINDOWS CRASH FIX: Forces the terminal to accept all characters/emojis
 if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
+# Load environment variables
+load_dotenv()
+
 # --- CONFIGURATION ---
 SUPABASE_URL = "https://smgjboifsheewiyeupbo.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtZ2pib2lmc2hlZXdpeWV1cGJvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzA0MDc3OSwiZXhwIjoyMDgyNjE2Nzc5fQ.ySJgBXFvZk5xxYzHqR7NfPXrRVGaR-8HrzC_tojuHhc" 
 
-# ⚡ PASTE YOUR NEW GROQ API KEY HERE:
-GROQ_API_KEY = "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" 
+# 🛠️ PROVIDER TOGGLE: "openrouter", "gemini", or "groq"
+AI_PROVIDER = "groq" 
+
+# OpenRouter Configuration
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
+
+# Gemini Configuration
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL = "gemini-2.0-flash" # Gemini 2.0 Flash is the latest stable high-speed model
+
+# Groq Configuration
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_MODEL = "llama-3.3-70b-versatile"
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-client = Groq(api_key=GROQ_API_KEY)
+
+# Initialize Clients
+def get_ai_response(prompt):
+    if AI_PROVIDER == "openrouter":
+        client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=OPENROUTER_API_KEY,
+        )
+        chat_completion = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model=OPENROUTER_MODEL,
+        )
+        return chat_completion.choices[0].message.content
+
+    elif AI_PROVIDER == "gemini":
+        llm = ChatGoogleGenerativeAI(
+            model=GEMINI_MODEL,
+            google_api_key=GEMINI_API_KEY,
+            temperature=0.7
+        )
+        response = llm.invoke([HumanMessage(content=prompt)])
+        return response.content
+
+    elif AI_PROVIDER == "groq":
+        llm = ChatGroq(
+            model=GROQ_MODEL,
+            groq_api_key=GROQ_API_KEY,
+            temperature=0.7
+        )
+        response = llm.invoke([HumanMessage(content=prompt)])
+        return response.content
+
+    else:
+        raise ValueError(f"Unknown AI_PROVIDER: {AI_PROVIDER}")
 
 TARGET_CAREERS = [
     "Software Engineer", 
@@ -43,7 +98,16 @@ def clean_json(raw_text):
     return text.strip()
 
 def run_slow_generation():
-    print("[BACKGROUND WORKER] Starting Llama 3 generation process via Groq...")
+    if AI_PROVIDER == "openrouter":
+        model_name = OPENROUTER_MODEL
+    elif AI_PROVIDER == "gemini":
+        model_name = GEMINI_MODEL
+    elif AI_PROVIDER == "groq":
+        model_name = GROQ_MODEL
+    else:
+        model_name = "unknown"
+
+    print(f"[BACKGROUND WORKER] Starting generation process via {AI_PROVIDER} ({model_name})...")
 
     for career_name in TARGET_CAREERS:
         existing = supabase.table('career').select('career_id').eq('career_name', career_name).execute()
@@ -69,20 +133,8 @@ def run_slow_generation():
         }}"""
 
         try:
-            # ⚡ GENERATE CONTENT USING GROQ (Lightning Fast!)
-            chat_completion = client.chat.completions.create(
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt,
-                    }
-                ],
-                model="llama3-8b-8192",
-                response_format={"type": "json_object"}, # Forces perfect JSON
-            )
-            
-            # Extract the text from Groq's response
-            response_text = chat_completion.choices[0].message.content
+            # ⚡ GENERATE CONTENT USING SELECTED PROVIDER
+            response_text = get_ai_response(prompt)
             data = json.loads(clean_json(response_text))
 
             # Database Insertion
@@ -115,7 +167,7 @@ def run_slow_generation():
 
             print(f"[SUCCESS] Generated and saved roadmap for: {career_name}")
             print("[SLEEP] Sleeping for 5 seconds to protect API limits...")
-            time.sleep(5) # Groq is generous, we only need to sleep for 5 seconds!
+            time.sleep(5) 
 
         except Exception as e:
             print(f"[ERROR] Error generating {career_name}: {e}")
