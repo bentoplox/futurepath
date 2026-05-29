@@ -19,13 +19,8 @@ const AdminDashboard = ({ user, onLogout }) => {
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState(null);
 
-  // --- MOCK DATA FOR SKILLS HEATMAP ---
-  const skillHeatmapData = [
-    { skill: 'Python', y1: 85, y2: 90, y3: 92, y4: 95 },
-    { skill: 'Cloud (AWS)', y1: 20, y2: 35, y3: 50, y4: 60 }, 
-    { skill: 'Data Analytics', y1: 40, y2: 55, y3: 70, y4: 80 },
-    { skill: 'Cybersecurity', y1: 15, y2: 25, y3: 30, y4: 45 }, 
-  ];
+  // --- DYNAMIC DATA FOR SKILLS HEATMAP ---
+  const [skillHeatmapData, setSkillHeatmapData] = useState([]);
 
   useEffect(() => {
     fetchData();
@@ -50,9 +45,14 @@ const AdminDashboard = ({ user, onLogout }) => {
         const feedbackRes = await fetch('http://127.0.0.1:5000/api/admin/feedback');
         const feedbackData = await feedbackRes.json();
 
+        // 4. Fetch Dynamic Heatmap Data
+        const heatmapRes = await fetch('http://127.0.0.1:5000/api/admin/heatmap');
+        const heatmapData = await heatmapRes.json();
+
         setStats({ students: studentCount || 0, alumni: alumniCount || 0, pendingPosts: pendingCount });
         setPosts(postData || []);
         if (feedbackData.success) setFeedback(feedbackData.reports || []);
+        if (heatmapData.success) setSkillHeatmapData(heatmapData.heatmap || []);
 
     } catch (err) {
         console.error("Error fetching admin data:", err);

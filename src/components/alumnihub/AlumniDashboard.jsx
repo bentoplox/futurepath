@@ -17,6 +17,19 @@ const AlumniDashboard = ({ user, onLogout }) => {
   // Track which post has its comment section open
   const [expandedPostId, setExpandedPostId] = useState(null);
 
+  // Category Filter State
+  const [selectedCategory, setSelectedCategory] = useState('All');
+
+  const mentorshipCategories = [
+    { label: 'All', value: 'All' },
+    { label: 'General', value: 'mentorship' },
+    { label: 'Resume Review', value: 'resume_review' },
+    { label: 'Interview Prep', value: 'interview_prep' },
+    { label: 'Career Advice', value: 'career_advice' },
+    { label: 'Portfolio Review', value: 'portfolio_review' },
+    { label: 'Coffee Chat', value: 'coffee_chat' }
+  ];
+
   // Form State
   const [newPost, setNewPost] = useState({
     title: '', content: '', type: 'job', company_name: '', application_link: ''
@@ -54,12 +67,18 @@ const AlumniDashboard = ({ user, onLogout }) => {
 
   // --- FILTER & SUBMIT LOGIC ---
   const filteredPosts = posts.filter(post => {
-    if (activeTab === 'jobs') {
-      return post.post_type === 'job' || post.post_type === 'internship';
-    } else {
-      // Added the new types to this list!
-      return ['mentorship', 'resume_review', 'interview_prep', 'career_advice', 'portfolio_review', 'coffee_chat'].includes(post.post_type);
+    const isTabMatch = activeTab === 'jobs' 
+      ? (post.post_type === 'job' || post.post_type === 'internship')
+      : ['mentorship', 'resume_review', 'interview_prep', 'career_advice', 'portfolio_review', 'coffee_chat'].includes(post.post_type);
+    
+    if (!isTabMatch) return false;
+    
+    // Apply Category Filter if in Mentorship Hub
+    if (activeTab === 'mentorship' && selectedCategory !== 'All') {
+      return post.post_type === selectedCategory;
     }
+    
+    return true;
   });
 
   const handlePostSubmit = async (e) => {
@@ -215,10 +234,57 @@ const AlumniDashboard = ({ user, onLogout }) => {
             {activeTab === 'jobs' ? 'Active Job & Internship Posts' : 'Mentorship Discussions'}
           </h2>
 
+          {/* CATEGORY PILLS (Only for Mentorship Tab) */}
+          {activeTab === 'mentorship' && (
+            <div style={{ 
+              display: 'flex', 
+              flexWrap: 'wrap',
+              gap: '10px', 
+              paddingBottom: '20px', 
+              marginBottom: '10px'
+            }}>
+              {mentorshipCategories.map((cat) => (
+                <button
+                  key={cat.value}
+                  onClick={() => setSelectedCategory(cat.value)}
+                  style={{
+                    whiteSpace: 'nowrap',
+                    padding: '8px 18px',
+                    borderRadius: '25px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    border: 'none',
+                    backgroundColor: selectedCategory === cat.value ? '#4c2882' : '#e5e7eb',
+                    color: selectedCategory === cat.value ? 'white' : '#4b5563',
+                    boxShadow: selectedCategory === cat.value ? '0 4px 6px rgba(76, 40, 130, 0.2)' : 'none'
+                  }}
+                  onMouseOver={(e) => {
+                    if (selectedCategory !== cat.value) e.currentTarget.style.backgroundColor = '#d1d5db';
+                  }}
+                  onMouseOut={(e) => {
+                    if (selectedCategory !== cat.value) e.currentTarget.style.backgroundColor = '#e5e7eb';
+                  }}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {loading ? <p style={{ textAlign: 'center', color: '#6b7280' }}>Loading feed...</p> : filteredPosts.length === 0 ? (
             <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '50px', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', borderTop: '5px solid #d1d5db', color: '#6b7280' }}>
-              <h3 style={{ fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", color: '#374151' }}>No posts found.</h3>
-              <p>Use the form on the right to share an opportunity!</p>
+              <h3 style={{ fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", color: '#374151' }}>
+                {activeTab === 'mentorship' && selectedCategory !== 'All' 
+                  ? `No discussions found for ${mentorshipCategories.find(c => c.value === selectedCategory)?.label}.`
+                  : 'No posts found.'}
+              </h3>
+              <p>
+                {activeTab === 'mentorship' && selectedCategory !== 'All' 
+                  ? 'Try selecting a different category or check back later!'
+                  : 'Use the form on the right to share an opportunity!'}
+              </p>
             </div>
           ) : (
             filteredPosts.map((post) => (

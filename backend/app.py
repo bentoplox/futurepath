@@ -165,6 +165,69 @@ def submit_quiz():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route('/api/submit-quiz', methods=['POST'])
+def submit_quiz_graded():
+    """
+    Task A: Detailed Grading Endpoint
+    Grades a single quiz submission by skill categories and inserts results.
+    """
+    try:
+        data = request.get_json()
+        student_id = data.get('student_id')
+        user_answers = data.get('answers', []) # Expected: [{"question_id": 1, "selected_answer": "A"}, ...]
+
+        if not student_id or not user_answers:
+            return jsonify({"success": False, "error": "Missing student_id or answers"}), 400
+
+        # 1. Fetch correct answers and skill_id mapping from 'quiz' table
+        question_ids = [a['question_id'] for a in user_answers]
+        response = supabase.table('quiz').select('quiz_id, skill_id, correct_answer').in_('quiz_id', question_ids).execute()
+        
+        quiz_data = response.data
+        if not quiz_data:
+            return jsonify({"success": False, "error": "Questions not found"}), 404
+
+        # 2. Map submissions for easy comparison
+        submission_map = {str(a['question_id']): a['selected_answer'] for a in user_answers}
+        
+        # 3. Aggregate performance by skill_id
+        skill_totals = {} # Format: {skill_id: {"correct": 0, "total": 0}}
+
+        for item in quiz_data:
+            s_id = item['skill_id']
+            q_id = str(item['quiz_id'])
+            
+            if s_id not in skill_totals:
+                skill_totals[s_id] = {"correct": 0, "total": 0}
+            
+            skill_totals[s_id]["total"] += 1
+            if submission_map.get(q_id) == item['correct_answer']:
+                skill_totals[s_id]["correct"] += 1
+
+        # 4. Prepare bulk insert for 'quiz_result' table
+        results_to_insert = []
+        for s_id, stats in skill_totals.items():
+            percentage_score = int((stats["correct"] / stats["total"]) * 100) if stats["total"] > 0 else 0
+            results_to_insert.append({
+                "user_id": student_id,
+                "skill_id": s_id,
+                "score": percentage_score
+            })
+
+        # 5. Insert into Supabase
+        if results_to_insert:
+            supabase.table('quiz_result').insert(results_to_insert).execute()
+
+        return jsonify({
+            "success": True,
+            "message": f"Graded {len(results_to_insert)} skills successfully.",
+            "results": results_to_insert
+        }), 201
+
+    except Exception as e:
+        print(f"[ERROR] Submit-quiz failed: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @app.route('/api/quiz/<int:skill_id>', methods=['GET'])
 def get_skill_quiz(skill_id):
     try:
@@ -317,6 +380,64 @@ def get_feedback_reports():
         })
     except Exception as e:
         print(f"[ERROR] Fetching feedback failed: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/admin/heatmap', methods=['GET'])
+def get_heatmap_data():
+    """
+    Aggregates quiz results for the Admin Heatmap.
+    Calculates avg score per skill for each academic year (1, 2, 3, 4).
+    """
+    try:
+        # 1. Fetch all quiz results joined with user academic_year
+        # We need skill name too
+        res = supabase.table('quiz_result').select('score, skill_id, skill(skill_name), users(academic_year)').execute()
+        raw_data = res.data
+
+        if not raw_data:
+            return jsonify({"success": True, "heatmap": []})
+
+        # 2. Aggregate logic
+        # Structure: { skill_id: { "name": "...", "y1": [], "y2": [], "y3": [], "y4": [] } }
+        aggregation = {}
+
+        for item in raw_data:
+            skill_info = item.get('skill')
+            user_info = item.get('users')
+            
+            if not skill_info or not user_info:
+                continue
+
+            s_id = item['skill_id']
+            s_name = skill_info['skill_name']
+            year = str(user_info['academic_year'])
+            score = item['score']
+
+            if s_id not in aggregation:
+                aggregation[s_id] = {
+                    "skill": s_name,
+                    "y1": [], "y2": [], "y3": [], "y4": []
+                }
+            
+            year_key = f"y{year}"
+            if year_key in aggregation[s_id]:
+                aggregation[s_id][year_key].append(score)
+
+        # 3. Calculate Averages
+        final_heatmap = []
+        for s_id, data in aggregation.items():
+            row = {"skill": data["skill"]}
+            for y in ["y1", "y2", "y3", "y4"]:
+                scores = data[y]
+                row[y] = round(sum(scores) / len(scores)) if scores else 0
+            final_heatmap.append(row)
+
+        return jsonify({
+            "success": True,
+            "heatmap": final_heatmap
+        })
+    except Exception as e:
+        print(f"[ERROR] Heatmap aggregation failed: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == '__main__':
