@@ -87,7 +87,7 @@ const Register = ({ onSwitchToLogin, initialRole = 'student' }) => {
     <div style={{
       minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       background: `linear-gradient(135deg, ${umBlue} 0%, ${fpPurple} 100%)`,
-      fontFamily: '"Segoe UI", Roboto, "Helvetica Neue", sans-serif', padding: '40px 20px', margin: '-20px'
+      fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", padding: '40px 20px', margin: '-20px'
     }}>
       
       <div style={{
@@ -96,7 +96,7 @@ const Register = ({ onSwitchToLogin, initialRole = 'student' }) => {
       }}>
         
         <div style={{ textAlign: 'center', marginBottom: '25px' }}>
-          <h2 style={{color: themeColor, margin: '0 0 10px 0', fontSize: '28px', fontFamily: 'Georgia, serif', fontWeight: 'bold', transition: 'color 0.3s'}}>
+          <h2 style={{color: themeColor, margin: '0 0 10px 0', fontSize: '28px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", fontWeight: 'bold', transition: 'color 0.3s'}}>
             Join as {role === 'alumni' ? 'Alumni' : 'Student'}
           </h2>
           <p style={{ color: '#6b7280', fontSize: '15px', margin: 0 }}>Create your FuturePath account</p>

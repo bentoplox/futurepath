@@ -9,7 +9,7 @@ export const styles = {
   appContainer: {
     minHeight: '100vh',
     backgroundColor: '#f3f4f6',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif",
     display: 'flex',            // <--- NEW: Helps center content vertically if needed
     flexDirection: 'column',    // <--- NEW: Stacks header and body
   },

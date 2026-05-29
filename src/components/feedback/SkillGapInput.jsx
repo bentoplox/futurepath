@@ -42,7 +42,7 @@ const SkillGapInput = ({ user, onBack }) => {
   };
 
   return (
-    <div style={{ backgroundColor: '#f9f9f9', minHeight: '100vh', fontFamily: '"Segoe UI", Roboto, "Helvetica Neue", sans-serif', margin: '-20px', paddingBottom: '50px' }}>
+    <div style={{ backgroundColor: '#f9f9f9', minHeight: '100vh', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", margin: '-20px', paddingBottom: '50px' }}>
       
       {/* 1. PREMIUM HERO BANNER */}
       <div style={{ 
@@ -68,7 +68,7 @@ const SkillGapInput = ({ user, onBack }) => {
             ← Back to Home
           </button>
 
-          <h1 style={{ fontSize: '36px', margin: '0 0 10px 0', fontWeight: '700', fontFamily: 'Georgia, serif' }}>
+          <h1 style={{ fontSize: '36px', margin: '0 0 10px 0', fontWeight: '700', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
             Curriculum Feedback
           </h1>
           <p style={{ opacity: 0.9, fontSize: '16px', margin: 0, maxWidth: '600px' }}>
@@ -82,7 +82,7 @@ const SkillGapInput = ({ user, onBack }) => {
         
         {/* Left Side: Form */}
         <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '30px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', flex: 2, minWidth: '60%' }}>
-          <h2 style={{ fontSize: '20px', color: '#111827', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '10px', fontFamily: 'Georgia, serif' }}>
+          <h2 style={{ fontSize: '20px', color: '#111827', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '10px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
             ✍️ Report a Missing Skill
           </h2>
           

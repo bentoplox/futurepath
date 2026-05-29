@@ -4,6 +4,8 @@
 // ============================================================================
 
 import React from 'react';
+// Import your newly traced custom logo here
+import futurePathLogo from '../assets/futurepath_logo_traced.svg';
 
 const NavigationBar = ({ currentView, setCurrentView, user, onProfileClick }) => {
   
@@ -23,7 +25,7 @@ const NavigationBar = ({ currentView, setCurrentView, user, onProfileClick }) =>
       justifyContent: 'space-between',
       alignItems: 'center',
       borderBottom: '1px solid rgba(255,255,255,0.05)',
-      fontFamily: '"Segoe UI", Roboto, "Helvetica Neue", sans-serif'
+      fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif"
     }}>
       
       {/* 1. BRAND & CUSTOM LOGO (Left) */}
@@ -31,12 +33,12 @@ const NavigationBar = ({ currentView, setCurrentView, user, onProfileClick }) =>
         onClick={() => setCurrentView('dashboard')}
         style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
       >
-        {/* Sleek Custom Isometric Tech/Path Logo */}
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="#fcd34d" stroke="#fcd34d" strokeWidth="1.5" strokeLinejoin="round"/>
-          <path d="M2 12L12 17L22 12" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M2 17L12 22L22 17" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
+        {/* Your uploaded SVG logo is now implemented here */}
+        <img 
+          src={futurePathLogo} 
+          alt="FuturePath Logo" 
+          style={{ width: '32px', height: '32px' }} 
+        />
 
         {/* Brand Text */}
         <span style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '0.5px' }}>

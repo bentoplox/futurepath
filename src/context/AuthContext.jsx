@@ -35,10 +35,18 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserDetails = async (email) => {
     try {
-      const { data } = await supabase.from('users').select('*').eq('email', email).single();
-      if (data) setUser(data);
+      console.log("[AUTH] Fetching details for email:", email);
+      const { data, error } = await supabase.from('users').select('*').eq('email', email).single();
+      if (error) throw error;
+      
+      if (data) {
+          console.log("[AUTH] User data found in DB:", data);
+          setUser(data);
+      } else {
+          console.warn("[AUTH] No user record found in 'public.users' for this email.");
+      }
     } catch (error) {
-      console.error('Error fetching user:', error);
+      console.error('[AUTH] Error fetching user details:', error);
     } finally {
       setLoading(false);
     }
@@ -50,10 +58,8 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
-  // ------------------------------------------------------------------
-  // UPDATE: Added 'role' parameter to the register function
-  // ------------------------------------------------------------------
   const register = async (email, password, name, role, programme) => {
+    console.log("[AUTH] Starting registration for:", email);
     // 1. Create Auth User
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
@@ -62,21 +68,27 @@ export const AuthProvider = ({ children }) => {
 
     if (authError) throw authError;
 
-    // 2. Insert into 'users' table with the specific ROLE
+    // 2. Insert into 'users' table with the specific ROLE and LINKED UUID
     if (authData.user) {
+      console.log("[AUTH] Supabase Auth Success. Linking UUID to public table:", authData.user.id);
       const { error: dbError } = await supabase
         .from('users')
         .insert([
           {
+            user_id: authData.user.id, 
             email: email,
             name: name,
-            role: role, // Now we save 'student' or 'alumni'
-            programme: role === 'student' ? programme : null, // Alumni don't need programme
+            role: role, 
+            programme: role === 'student' ? programme : null,
             status: 'active'
           }
         ]);
 
-      if (dbError) throw dbError;
+      if (dbError) {
+          console.error("[AUTH] DB Insert Failed:", dbError);
+          throw dbError;
+      }
+      console.log("[AUTH] Registration Complete.");
     }
     return authData;
   };

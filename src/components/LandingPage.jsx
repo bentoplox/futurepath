@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { styles } from '../styles/styles';
+import futurePathLogo from '../assets/futurepath_logo_traced.svg';
 
 const LandingPage = ({ onLoginClick, onRegisterClick }) => {
   
@@ -14,7 +15,7 @@ const LandingPage = ({ onLoginClick, onRegisterClick }) => {
   const umGold = '#fbbf24';
 
   return (
-    <div style={{...styles.appContainer, backgroundColor: '#f9f9f9', display: 'flex', flexDirection: 'column', minHeight: '100vh', fontFamily: '"Segoe UI", Roboto, "Helvetica Neue", sans-serif'}}>
+    <div style={{...styles.appContainer, backgroundColor: '#f9f9f9', display: 'flex', flexDirection: 'column', minHeight: '100vh', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif"}}>
       
       {/* --- HERO WRAPPER (Seamless Gradient) --- */}
       <div style={{ 
@@ -41,11 +42,11 @@ const LandingPage = ({ onLoginClick, onRegisterClick }) => {
         }}>
           {/* Custom SVG Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L2 7L12 12L22 7L12 2Z" fill={umGold} stroke={umGold} strokeWidth="1.5" strokeLinejoin="round"/>
-              <path d="M2 12L12 17L22 12" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M2 17L12 22L22 17" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <img 
+              src={futurePathLogo} 
+              alt="FuturePath Logo" 
+              style={{ width: '32px', height: '32px' }} 
+            />
             <h1 style={{ margin: 0, fontSize: '22px', fontWeight: '800', letterSpacing: '0.5px' }}>
               <span style={{ color: 'white' }}>Future</span>
               <span style={{ color: umGold }}>Path</span>
@@ -71,7 +72,7 @@ const LandingPage = ({ onLoginClick, onRegisterClick }) => {
           <span style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: umGold, border: `1px solid rgba(251, 191, 36, 0.3)`, padding: '6px 16px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px', display: 'inline-block', marginBottom: '25px', backdropFilter: 'blur(5px)' }}>
             UNIVERSITI MALAYA • FSKTM
           </span>
-          <h1 style={{ fontSize: '48px', marginBottom: '20px', color: 'white', fontWeight: '800', fontFamily: 'Georgia, serif' }}>
+          <h1 style={{ fontSize: '48px', marginBottom: '20px', color: 'white', fontWeight: '800', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
             Shape Your <span style={{color: umGold}}>Future Career</span>
           </h1>
           <p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.9)', maxWidth: '700px', margin: '0 auto 50px', lineHeight: '1.6' }}>
@@ -88,7 +89,7 @@ const LandingPage = ({ onLoginClick, onRegisterClick }) => {
                   width: '320px', textAlign: 'center', borderTop: `6px solid ${fpPurple}`
               }}>
                   <div style={{fontSize: '40px', marginBottom: '15px'}}>🎓</div>
-                  <h3 style={{marginBottom: '10px', color: '#111827', fontSize:'22px', fontFamily: 'Georgia, serif'}}>I am a Student</h3>
+                  <h3 style={{marginBottom: '10px', color: '#111827', fontSize:'22px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif"}}>I am a Student</h3>
                   <p style={{color: '#6B7280', fontSize: '15px', marginBottom: '25px', lineHeight: '1.5'}}>
                       Get personalized roadmaps, track skills, and find resources to ace your career.
                   </p>
@@ -107,7 +108,7 @@ const LandingPage = ({ onLoginClick, onRegisterClick }) => {
                   width: '320px', textAlign: 'center', borderTop: `6px solid ${umBlue}`
               }}>
                   <div style={{fontSize: '40px', marginBottom: '15px'}}>💼</div>
-                  <h3 style={{marginBottom: '10px', color: '#111827', fontSize:'22px', fontFamily: 'Georgia, serif'}}>I am an Alumni</h3>
+                  <h3 style={{marginBottom: '10px', color: '#111827', fontSize:'22px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif"}}>I am an Alumni</h3>
                   <p style={{color: '#6B7280', fontSize: '15px', marginBottom: '25px', lineHeight: '1.5'}}>
                       Share jobs, mentor juniors, and give back to the FSKTM community.
                   </p>
@@ -124,7 +125,7 @@ const LandingPage = ({ onLoginClick, onRegisterClick }) => {
 
       {/* --- FEATURES GRID (HORIZONTAL LAYOUT) --- */}
       <section style={{ padding: '80px 40px', maxWidth: '1400px', margin: '0 auto' }}>
-        <h2 style={{ textAlign: 'center', fontSize: '32px', marginBottom: '60px', color: '#111827', fontWeight: '800', fontFamily: 'Georgia, serif' }}>
+        <h2 style={{ textAlign: 'center', fontSize: '32px', marginBottom: '60px', color: '#111827', fontWeight: '800', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
           System Capabilities
         </h2>
 
@@ -138,7 +139,7 @@ const LandingPage = ({ onLoginClick, onRegisterClick }) => {
           {/* FEATURE 1: ROADMAP (FuturePath Purple Theme) */}
           <div style={{...styles.card, borderTop: `5px solid ${fpPurple}`, padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)'}}>
             <div style={{ fontSize: '32px', marginBottom: '20px', backgroundColor:'#f3e8ff', width:'60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius:'12px' }}>🗺️</div>
-            <h3 style={{ color: '#111827', fontSize: '20px', marginBottom: '15px', fontWeight: '700', fontFamily: 'Georgia, serif' }}>
+            <h3 style={{ color: '#111827', fontSize: '20px', marginBottom: '15px', fontWeight: '700', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
                 Personalized Learning Roadmap
             </h3>
             <ul style={{ color: '#4B5563', paddingLeft: '20px', lineHeight: '1.6', fontSize:'15px', margin: 0 }}>
@@ -152,7 +153,7 @@ const LandingPage = ({ onLoginClick, onRegisterClick }) => {
           {/* FEATURE 2: EMPLOYABILITY (UM Blue Theme) */}
           <div style={{...styles.card, borderTop: `5px solid ${umBlue}`, padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)'}}>
             <div style={{ fontSize: '32px', marginBottom: '20px', backgroundColor:'#eff6ff', width:'60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius:'12px' }}>📊</div>
-            <h3 style={{ color: '#111827', fontSize: '20px', marginBottom: '15px', fontWeight: '700', fontFamily: 'Georgia, serif' }}>
+            <h3 style={{ color: '#111827', fontSize: '20px', marginBottom: '15px', fontWeight: '700', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
                 Graduate Employability Intelligence
             </h3>
             <ul style={{ color: '#4B5563', paddingLeft: '20px', lineHeight: '1.6', fontSize:'15px', margin: 0 }}>
@@ -166,7 +167,7 @@ const LandingPage = ({ onLoginClick, onRegisterClick }) => {
           {/* FEATURE 3: ALUMNI HUB (UM Gold Theme) */}
           <div style={{...styles.card, borderTop: `5px solid ${umGold}`, padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)'}}>
             <div style={{ fontSize: '32px', marginBottom: '20px', backgroundColor:'#fef3c7', width:'60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius:'12px' }}>🤝</div>
-            <h3 style={{ color: '#111827', fontSize: '20px', marginBottom: '15px', fontWeight: '700', fontFamily: 'Georgia, serif' }}>
+            <h3 style={{ color: '#111827', fontSize: '20px', marginBottom: '15px', fontWeight: '700', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
                 Alumni & Mentorship Network
             </h3>
             <ul style={{ color: '#4B5563', paddingLeft: '20px', lineHeight: '1.6', fontSize:'15px', margin: 0 }}>

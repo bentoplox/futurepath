@@ -62,7 +62,7 @@ const StudentJobBoard = ({ onBack }) => {
   };
 
   return (
-    <div style={{ backgroundColor: '#f9f9f9', minHeight: '100vh', fontFamily: '"Segoe UI", Roboto, "Helvetica Neue", sans-serif', margin: '-20px', paddingBottom: '50px' }}>
+    <div style={{ backgroundColor: '#f9f9f9', minHeight: '100vh', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", margin: '-20px', paddingBottom: '50px' }}>
 
       {/* 1. PREMIUM HERO BANNER (Matches Employability UI) */}
       <div style={{
@@ -89,7 +89,7 @@ const StudentJobBoard = ({ onBack }) => {
           <span style={{ backgroundColor: '#fcd34d', color: '#78350f', padding: '6px 16px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px', display: 'inline-block', marginBottom: '20px' }}>
             ALUMNI NETWORK — FSKTM UM
           </span>
-          <h1 style={{ fontSize: '42px', margin: '0 0 10px 0', fontWeight: '700', fontFamily: 'Georgia, serif' }}>
+          <h1 style={{ fontSize: '42px', margin: '0 0 10px 0', fontWeight: '700', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
             Alumni<br /><span style={{ color: '#fcd34d' }}>Opportunities</span>
           </h1>
           <p style={{ opacity: 0.9, maxWidth: '600px', fontSize: '15px', lineHeight: '1.6', marginBottom: '30px' }}>
@@ -128,14 +128,14 @@ const StudentJobBoard = ({ onBack }) => {
       <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 20px', minHeight: '400px' }}>
 
         {/* Section Title */}
-        <h2 style={{ fontSize: '20px', color: '#333', marginBottom: '20px', display: 'flex', alignItems: 'center', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>
+        <h2 style={{ fontSize: '20px', color: '#333', marginBottom: '20px', display: 'flex', alignItems: 'center', fontWeight: 'bold', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
           <span style={{ marginRight: '10px', fontSize: '24px' }}>{activeTab === 'jobs' ? '📌' : '💡'}</span>
           {activeTab === 'jobs' ? 'Latest Roles' : 'Active Discussions'}
         </h2>
 
         {loading ? <p style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>Loading opportunities...</p> : filteredPosts.length === 0 ? (
           <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '50px', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', borderTop: '5px solid #d1d5db', color: '#6b7280' }}>
-            <h3 style={{ fontFamily: 'Georgia, serif', color: '#374151' }}>No posts found yet.</h3>
+            <h3 style={{ fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", color: '#374151' }}>No posts found yet.</h3>
             <p>Check back later for new opportunities from our alumni.</p>
           </div>
         ) : (
@@ -160,7 +160,7 @@ const StudentJobBoard = ({ onBack }) => {
                   }}>
                     {post.post_type.replace('_', ' ')}
                   </span>
-                  <h3 style={{ margin: '10px 0 5px 0', fontSize: '22px', color: '#111827', fontFamily: 'Georgia, serif' }}>{post.title}</h3>
+                  <h3 style={{ margin: '10px 0 5px 0', fontSize: '22px', color: '#111827', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>{post.title}</h3>
                   {post.company_name && <p style={{ margin: 0, color: '#4b5563', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '5px' }}>🏢 {post.company_name}</p>}
                 </div>
                 <span style={{ fontSize: '13px', color: '#9ca3af', fontWeight: '500' }}>

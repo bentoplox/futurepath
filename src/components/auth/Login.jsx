@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import futurePathLogo from '../../assets/futurepath_logo_traced.svg';
 
 const Login = ({ onSwitchToRegister, onLoginSuccess }) => {
   const [email, setEmail] = useState('');
@@ -53,7 +54,7 @@ const Login = ({ onSwitchToRegister, onLoginSuccess }) => {
       alignItems: 'center',
       justifyContent: 'center',
       background: `linear-gradient(135deg, ${umBlue} 0%, ${fpPurple} 100%)`,
-      fontFamily: '"Segoe UI", Roboto, "Helvetica Neue", sans-serif',
+      fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif",
       padding: '20px',
       margin: '-20px' // Offsets AppContainer padding if present
     }}>
@@ -73,14 +74,14 @@ const Login = ({ onSwitchToRegister, onLoginSuccess }) => {
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>
             <div style={{ backgroundColor: '#f3e8ff', padding: '12px', borderRadius: '16px' }}>
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L2 7L12 12L22 7L12 2Z" fill={umGold} stroke={umGold} strokeWidth="1.5" strokeLinejoin="round"/>
-                <path d="M2 12L12 17L22 12" stroke={fpPurple} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M2 17L12 22L22 17" stroke={fpPurple} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <img 
+                src={futurePathLogo} 
+                alt="FuturePath Logo" 
+                style={{ width: '40px', height: '40px' }} 
+              />
             </div>
           </div>
-          <h2 style={{ margin: '0 0 10px 0', color: '#111827', fontSize: '28px', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}>
+          <h2 style={{ margin: '0 0 10px 0', color: '#111827', fontSize: '28px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", fontWeight: 'bold' }}>
             Welcome Back
           </h2>
           <p style={{ color: '#6b7280', margin: 0, fontSize: '15px' }}>

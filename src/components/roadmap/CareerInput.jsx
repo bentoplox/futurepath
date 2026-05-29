@@ -55,7 +55,7 @@ const CareerInput = ({ onCareerSelect }) => {
   return (
     <div style={{ maxWidth: '600px', margin: '0 auto', padding: '40px 20px' }}>
       <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-        <h2 style={{ fontSize: '32px', color: '#111827', margin: '0 0 15px 0', fontFamily: 'Georgia, serif' }}>
+        <h2 style={{ fontSize: '32px', color: '#111827', margin: '0 0 15px 0', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
           Define Your Tech Career
         </h2>
         <p style={{ color: '#4b5563', fontSize: '16px', lineHeight: '1.6' }}>

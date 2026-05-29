@@ -57,7 +57,7 @@ const EmployabilityDashboard = () => {
   };
 
   return (
-    <div style={{ backgroundColor: '#f9f9f9', minHeight: '100vh', paddingBottom: '50px', fontFamily: '"Segoe UI", Roboto, "Helvetica Neue", sans-serif' }}>
+    <div style={{ backgroundColor: '#f9f9f9', minHeight: '100vh', paddingBottom: '50px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
       
       {/* 1. HERO BANNER (UiTM Style) */}
       <div style={{ 
@@ -78,7 +78,7 @@ const EmployabilityDashboard = () => {
           <span style={{ backgroundColor: '#fcd34d', color: '#78350f', padding: '6px 16px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px', display: 'inline-block', marginBottom: '20px' }}>
             GRADUATE EMPLOYABILITY — FSKTM UM
           </span>
-          <h1 style={{ fontSize: '48px', margin: '0 0 10px 0', fontWeight: '700', fontFamily: 'Georgia, serif' }}>
+          <h1 style={{ fontSize: '48px', margin: '0 0 10px 0', fontWeight: '700', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
             Graduate<br/><span style={{ color: '#fcd34d' }}>Employability</span>
           </h1>
           <p style={{ opacity: 0.9, maxWidth: '600px', fontSize: '15px', lineHeight: '1.6', marginBottom: '30px' }}>
@@ -119,7 +119,7 @@ const EmployabilityDashboard = () => {
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
         
         {/* SECTION TITLE */}
-        <h2 style={{ fontSize: '20px', color: '#333', marginBottom: '20px', display: 'flex', alignItems: 'center', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>
+        <h2 style={{ fontSize: '20px', color: '#333', marginBottom: '20px', display: 'flex', alignItems: 'center', fontWeight: 'bold', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
           <span style={{ marginRight: '10px', fontSize: '24px' }}>🏆</span> Key Employability Scores
         </h2>
 
@@ -130,7 +130,7 @@ const EmployabilityDashboard = () => {
           <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '30px', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', borderTop: '5px solid #4c2882' }}>
             <div style={{ fontSize: '24px', marginBottom: '10px' }}>🎯</div>
             <h3 style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1px' }}>GE SCORE</h3>
-            <p style={{ margin: '0 0 5px 0', fontSize: '42px', fontWeight: 'bold', color: '#4c2882', fontFamily: 'Georgia, serif' }}>{currentData.ge_pct}%</p>
+            <p style={{ margin: '0 0 5px 0', fontSize: '42px', fontWeight: 'bold', color: '#4c2882', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>{currentData.ge_pct}%</p>
             <p style={{ margin: 0, fontSize: '13px', color: '#9ca3af' }}>Graduate Employability Score</p>
           </div>
 
@@ -138,7 +138,7 @@ const EmployabilityDashboard = () => {
           <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '30px', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', borderTop: '5px solid #fcd34d' }}>
             <div style={{ fontSize: '24px', marginBottom: '10px' }}>📊</div>
             <h3 style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1px' }}>RESPONSE RATE</h3>
-            <p style={{ margin: '0 0 5px 0', fontSize: '42px', fontWeight: 'bold', color: '#b45309', fontFamily: 'Georgia, serif' }}>{currentData.response_rate}%</p>
+            <p style={{ margin: '0 0 5px 0', fontSize: '42px', fontWeight: 'bold', color: '#b45309', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>{currentData.response_rate}%</p>
             <p style={{ margin: 0, fontSize: '13px', color: '#9ca3af' }}>Based on {currentData.respondents} out of {currentData.graduates} graduates</p>
           </div>
 
@@ -146,14 +146,14 @@ const EmployabilityDashboard = () => {
           <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '30px', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', borderTop: '5px solid #ef4444' }}>
             <div style={{ fontSize: '24px', marginBottom: '10px' }}>💼</div>
             <h3 style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1px' }}>UNEMPLOYMENT RATE</h3>
-            <p style={{ margin: '0 0 5px 0', fontSize: '42px', fontWeight: 'bold', color: '#16a34a', fontFamily: 'Georgia, serif' }}>{currentData.unemployed_pct}%</p>
+            <p style={{ margin: '0 0 5px 0', fontSize: '42px', fontWeight: 'bold', color: '#16a34a', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>{currentData.unemployed_pct}%</p>
             <p style={{ margin: 0, fontSize: '13px', color: '#9ca3af' }}>{currentData.unemployed_no} graduates currently seeking employment</p>
           </div>
 
         </div>
 
         {/* SECTION TITLE 2 */}
-        <h2 style={{ fontSize: '20px', color: '#333', marginBottom: '20px', display: 'flex', alignItems: 'center', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>
+        <h2 style={{ fontSize: '20px', color: '#333', marginBottom: '20px', display: 'flex', alignItems: 'center', fontWeight: 'bold', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
           <span style={{ marginRight: '10px', fontSize: '24px' }}>📊</span> Employment Status
         </h2>
 
@@ -187,7 +187,7 @@ const EmployabilityDashboard = () => {
               
               {/* Center Text in Donut */}
               <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#4c2882', fontFamily: 'Georgia, serif' }}>{currentData.employed_pct}%</div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#4c2882', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>{currentData.employed_pct}%</div>
                 <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase' }}>Employed</div>
               </div>
             </div>
@@ -213,7 +213,7 @@ const EmployabilityDashboard = () => {
         </div>
 
         {/* 4. GLOSSARY / NOTES SECTION */}
-        <h2 style={{ fontSize: '20px', color: '#333', marginTop: '50px', marginBottom: '20px', display: 'flex', alignItems: 'center', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>
+        <h2 style={{ fontSize: '20px', color: '#333', marginTop: '50px', marginBottom: '20px', display: 'flex', alignItems: 'center', fontWeight: 'bold', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
           <span style={{ marginRight: '10px', fontSize: '24px' }}>📝</span> Understanding the Metrics
         </h2>
 

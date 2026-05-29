@@ -1,12 +1,9 @@
-// ============================================================================
-// FILE: src/components/roadmap/QuizModal.jsx
-// PURPOSE: Fetches Database Quizzes with Review Feature & Smart Grading
-// ============================================================================
-
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { styles } from '../../styles/styles';
 
-const QuizModal = ({ skillId, onClose, onQuizPass }) => {
+const QuizModal = ({ skillId, careerId, onClose, onQuizPass }) => {
+  const { user } = useAuth();
   const [questions, setQuestions] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState(null); 
@@ -17,17 +14,23 @@ const QuizModal = ({ skillId, onClose, onQuizPass }) => {
   const [isReviewing, setIsReviewing] = useState(false);
   const [score, setScore] = useState(0);
 
+  const isCapstone = !!careerId;
+
   useEffect(() => {
     const fetchQuiz = async () => {
       setLoading(true);
       setApiError(null);
       try {
-        // ⚡ FETCH FROM NEW GET ROUTE USING SKILL ID
-        const response = await fetch(`http://127.0.0.1:5000/api/quiz/${skillId}`);
+        // ⚡ FETCH FROM APPROPRIATE ENDPOINT
+        const url = isCapstone 
+            ? `http://127.0.0.1:5000/api/capstone/${careerId}`
+            : `http://127.0.0.1:5000/api/quiz/${skillId}`;
+            
+        const response = await fetch(url);
         const data = await response.json();
 
         if (data.success) {
-            setQuestions(data.questions); // Updated to match the new Flask response
+            setQuestions(data.questions);
         } else {
             throw new Error(data.error || "Failed to load quiz");
         }
@@ -39,8 +42,8 @@ const QuizModal = ({ skillId, onClose, onQuizPass }) => {
       }
     };
 
-    if (skillId) fetchQuiz();
-  }, [skillId]); 
+    if (skillId || careerId) fetchQuiz();
+  }, [skillId, careerId, isCapstone]); 
 
   // ⚡ THE SMART GRADER: Handles "B", "B. text", or exact matches
   const isCorrectMatch = (optionText, optionIndex, aiCorrectAnswer) => {
@@ -66,7 +69,7 @@ const QuizModal = ({ skillId, onClose, onQuizPass }) => {
     setSelectedAnswers({ ...selectedAnswers, [currentQuestion]: answerIndex });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     let correctCount = 0;
     questions.forEach((q, index) => {
         const selectedOptionText = q.options[selectedAnswers[index]]; 
@@ -79,6 +82,24 @@ const QuizModal = ({ skillId, onClose, onQuizPass }) => {
 
     const percentage = Math.round((correctCount / questions.length) * 100);
     setScore(percentage);
+    
+    // ⚡ NEW: SAVE RESULTS TO BACKEND
+    if (isCapstone && user) {
+        try {
+            await fetch('http://127.0.0.1:5000/api/quiz/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: user.user_id,
+                    career_id: careerId,
+                    score: percentage
+                })
+            });
+        } catch (err) {
+            console.error("Failed to submit quiz:", err);
+        }
+    }
+
     setShowResults(true);
   };
 

@@ -130,7 +130,7 @@ const AlumniDashboard = ({ user, onLogout }) => {
   };
 
   return (
-    <div style={{ backgroundColor: '#f9f9f9', minHeight: '100vh', fontFamily: '"Segoe UI", Roboto, "Helvetica Neue", sans-serif', paddingBottom: '50px' }}>
+    <div style={{ backgroundColor: '#f9f9f9', minHeight: '100vh', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", paddingBottom: '50px' }}>
 
       {/* 1. PREMIUM HERO BANNER */}
       <div style={{
@@ -170,7 +170,7 @@ const AlumniDashboard = ({ user, onLogout }) => {
           <span style={{ backgroundColor: '#fcd34d', color: '#78350f', padding: '6px 16px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px', display: 'inline-block', marginBottom: '20px' }}>
             ALUMNI PORTAL — FSKTM UM
           </span>
-          <h1 style={{ fontSize: '42px', margin: '0 0 10px 0', fontWeight: '700', fontFamily: 'Georgia, serif' }}>
+          <h1 style={{ fontSize: '42px', margin: '0 0 10px 0', fontWeight: '700', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
             Welcome back,<br /><span style={{ color: '#fcd34d' }}>{user.name.split(' ')[0]}</span>
           </h1>
           <p style={{ opacity: 0.9, maxWidth: '600px', fontSize: '15px', lineHeight: '1.6', marginBottom: '30px' }}>
@@ -210,14 +210,14 @@ const AlumniDashboard = ({ user, onLogout }) => {
 
         {/* === LEFT COLUMN: FEED === */}
         <div style={{ flex: 2, minWidth: '60%' }}>
-          <h2 style={{ fontSize: '20px', color: '#333', marginBottom: '20px', display: 'flex', alignItems: 'center', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>
+          <h2 style={{ fontSize: '20px', color: '#333', marginBottom: '20px', display: 'flex', alignItems: 'center', fontWeight: 'bold', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
             <span style={{ marginRight: '10px', fontSize: '24px' }}>{activeTab === 'jobs' ? '📌' : '💡'}</span>
             {activeTab === 'jobs' ? 'Active Job & Internship Posts' : 'Mentorship Discussions'}
           </h2>
 
           {loading ? <p style={{ textAlign: 'center', color: '#6b7280' }}>Loading feed...</p> : filteredPosts.length === 0 ? (
             <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '50px', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', borderTop: '5px solid #d1d5db', color: '#6b7280' }}>
-              <h3 style={{ fontFamily: 'Georgia, serif', color: '#374151' }}>No posts found.</h3>
+              <h3 style={{ fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", color: '#374151' }}>No posts found.</h3>
               <p>Use the form on the right to share an opportunity!</p>
             </div>
           ) : (
@@ -241,7 +241,7 @@ const AlumniDashboard = ({ user, onLogout }) => {
                     }}>
                       {post.post_type.replace('_', ' ')}
                     </span>
-                    <h3 style={{ margin: '10px 0 5px 0', fontSize: '22px', color: '#111827', fontFamily: 'Georgia, serif' }}>{post.title}</h3>
+                    <h3 style={{ margin: '10px 0 5px 0', fontSize: '22px', color: '#111827', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>{post.title}</h3>
                     {post.company_name && <p style={{ margin: 0, color: '#4b5563', fontWeight: '500' }}>🏢 {post.company_name}</p>}
                   </div>
 
@@ -313,7 +313,7 @@ const AlumniDashboard = ({ user, onLogout }) => {
         {/* === RIGHT COLUMN: SIDEBAR FORM === */}
         <div style={{ flex: 1, minWidth: '300px' }}>
           <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', position: 'sticky', top: '20px' }}>
-            <h3 style={{ fontSize: '18px', color: '#4c2882', marginBottom: '20px', fontFamily: 'Georgia, serif', borderBottom: '2px solid #f3f4f6', paddingBottom: '10px' }}>
+            <h3 style={{ fontSize: '18px', color: '#4c2882', marginBottom: '20px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", borderBottom: '2px solid #f3f4f6', paddingBottom: '10px' }}>
               {activeTab === 'jobs' ? '📢 Post an Opportunity' : '🗣️ Start a Discussion'}
             </h3>
             <form onSubmit={handlePostSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>

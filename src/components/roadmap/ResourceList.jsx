@@ -8,6 +8,14 @@ import React from 'react';
 import { styles } from '../../styles/styles';
 
 const ResourceList = ({ resources }) => {
+  // --- HELPER: Extract YouTube ID ---
+  const getYouTubeId = (url) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
   // Handle case where no resources are available
   if (!resources || resources.length === 0) {
     return (
@@ -33,41 +41,97 @@ const ResourceList = ({ resources }) => {
       </p>
 
       {/* Map through all resources and display them */}
-      {resources.map((resource) => (
-        <div key={resource.resource_id} style={styles.resourceItem}>
-          <div style={{ flex: 1 }}>
-            {/* Resource title */}
-            <strong style={{ color: '#111827', display: 'block', marginBottom: '5px' }}>
-              {resource.title}
-            </strong>
-            
-            {/* Resource metadata: provider and cost type */}
-            <div style={styles.resourceMeta}>
-              <span>📚 {resource.provider}</span>
-              <span style={{
-                ...styles.costBadge,
-                backgroundColor: resource.cost_type === 'free' ? '#10b981' : '#f59e0b'
-              }}>
-                {resource.cost_type === 'free' ? '🆓 Free' : '💰 Paid'}
-              </span>
-            </div>
-          </div>
+      {resources.map((resource, index) => {
+        const ytId = getYouTubeId(resource.url);
+        // Fallback for missing thumbnails: derive from YouTube if possible, otherwise UI-avatar
+        const thumb = ytId 
+            ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg` 
+            : `https://ui-avatars.com/api/?name=${encodeURIComponent(resource.provider)}&background=random&color=fff`;
 
-          {/* Link to open resource */}
-          <a 
-            href={resource.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={styles.resourceLink}
-            onClick={(e) => {
-              // Optional: Track resource clicks in analytics
-              console.log(`User clicked resource: ${resource.title}`);
-            }}
-          >
-            Open →
-          </a>
-        </div>
-      ))}
+        return (
+          <div key={resource.resource_id || index} style={{
+            ...styles.resourceItem,
+            flexDirection: 'column',
+            alignItems: 'stretch',
+            gap: '15px',
+            padding: '20px'
+          }}>
+            {/* TOP ROW: ICON + TITLE + BADGES */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <img 
+                  src={thumb} 
+                  alt={resource.title}
+                  style={{
+                    width: '100px',
+                    height: '75px',
+                    borderRadius: '8px',
+                    objectFit: 'cover',
+                    border: '1px solid #e5e7eb',
+                    backgroundColor: '#f3f4f6'
+                  }}
+                  onError={(e) => { e.target.src = 'https://via.placeholder.com/100x75?text=Resource'; }}
+                />
+
+                <div style={{ flex: 1 }}>
+                  <strong style={{ color: '#111827', display: 'block', fontSize: '16px', marginBottom: '6px' }}>
+                    {resource.title}
+                  </strong>
+                  
+                  <div style={{ ...styles.resourceMeta, marginTop: '0' }}>
+                    <span style={{ fontSize: '12px', fontWeight: '600' }}>{ytId ? '🎬 YouTube' : `📚 ${resource.provider}`}</span>
+                    <span style={{
+                      ...styles.costBadge,
+                      backgroundColor: resource.cost_type === 'free' ? '#10b981' : '#f59e0b',
+                      fontSize: '11px',
+                      padding: '2px 8px'
+                    }}>
+                      {resource.cost_type === 'free' ? 'FREE' : 'PAID'}
+                    </span>
+                  </div>
+                </div>
+
+                <a 
+                  href={resource.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    ...styles.resourceLink,
+                    backgroundColor: '#f3f4f6',
+                    color: '#4b5563',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    textDecoration: 'none',
+                    fontSize: '13px',
+                    border: '1px solid #d1d5db'
+                  }}
+                >
+                  Visit Link ↗
+                </a>
+            </div>
+
+            {/* IF YOUTUBE: SHOW EMBEDDED PLAYER */}
+            {ytId && (
+                <div style={{ 
+                    marginTop: '10px', 
+                    borderRadius: '12px', 
+                    overflow: 'hidden', 
+                    aspectRatio: '16/9',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }}>
+                    <iframe
+                        width="100%"
+                        height="100%"
+                        src={`https://www.youtube.com/embed/${ytId}`}
+                        title={resource.title}
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                    ></iframe>
+                </div>
+            )}
+          </div>
+        );
+      })}
 
       {/* Additional help text */}
       <div style={{

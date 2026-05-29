@@ -11,6 +11,7 @@ import EmployabilityDashboard from '../dashboard/EmployabilityDashboard'; // Adj
 const AdminDashboard = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('overview'); 
   const [posts, setPosts] = useState([]);
+  const [feedback, setFeedback] = useState([]); // ⚡ NEW: Feedback state
   const [stats, setStats] = useState({ students: 0, alumni: 0, pendingPosts: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -32,20 +33,32 @@ const AdminDashboard = ({ user, onLogout }) => {
 
   const fetchData = async () => {
     setLoading(true);
-    
-    const { count: studentCount } = await supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'student');
-    const { count: alumniCount } = await supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'alumni');
-    
-    const { data: postData } = await supabase
-      .from('alumni_posts')
-      .select('*, users(name, role)')
-      .order('created_at', { ascending: false });
+    try {
+        // 1. Fetch User Stats
+        const { count: studentCount } = await supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'student');
+        const { count: alumniCount } = await supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'alumni');
+        
+        // 2. Fetch Pending Posts
+        const { data: postData } = await supabase
+          .from('alumni_posts')
+          .select('*, users(name, role)')
+          .order('created_at', { ascending: false });
 
-    const pendingCount = postData ? postData.filter(p => p.status === 'pending').length : 0;
+        const pendingCount = postData ? postData.filter(p => p.status === 'pending').length : 0;
 
-    setStats({ students: studentCount || 0, alumni: alumniCount || 0, pendingPosts: pendingCount });
-    setPosts(postData || []);
-    setLoading(false);
+        // 3. Fetch ANONYMIZED Feedback (FR6.3)
+        const feedbackRes = await fetch('http://127.0.0.1:5000/api/admin/feedback');
+        const feedbackData = await feedbackRes.json();
+
+        setStats({ students: studentCount || 0, alumni: alumniCount || 0, pendingPosts: pendingCount });
+        setPosts(postData || []);
+        if (feedbackData.success) setFeedback(feedbackData.reports || []);
+
+    } catch (err) {
+        console.error("Error fetching admin data:", err);
+    } finally {
+        setLoading(false);
+    }
   };
 
   const updateStatus = async (postId, newStatus) => {
@@ -92,7 +105,7 @@ const AdminDashboard = ({ user, onLogout }) => {
   const umGold = '#fbbf24'; // University Gold
 
   return (
-    <div style={{ backgroundColor: '#f9f9f9', minHeight: '100vh', fontFamily: '"Segoe UI", Roboto, "Helvetica Neue", sans-serif', margin: '-20px', paddingBottom: '50px' }}>
+    <div style={{ backgroundColor: '#f9f9f9', minHeight: '100vh', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", margin: '-20px', paddingBottom: '50px' }}>
       
       {/* 1. PREMIUM UM BLUE HERO BANNER */}
       <div style={{ 
@@ -131,7 +144,7 @@ const AdminDashboard = ({ user, onLogout }) => {
           <span style={{ backgroundColor: umGold, color: '#78350f', padding: '6px 16px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px', display: 'inline-block', marginBottom: '20px' }}>
             ADMINISTRATOR — FSKTM UM
           </span>
-          <h1 style={{ fontSize: '42px', margin: '0 0 10px 0', fontWeight: '700', fontFamily: 'Georgia, serif' }}>
+          <h1 style={{ fontSize: '42px', margin: '0 0 10px 0', fontWeight: '700', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
             System <span style={{ color: umGold }}>Overview</span>
           </h1>
           <p style={{ opacity: 0.9, maxWidth: '600px', fontSize: '15px', lineHeight: '1.6', marginBottom: '30px' }}>
@@ -185,14 +198,49 @@ const AdminDashboard = ({ user, onLogout }) => {
       {/* 3. MAIN CONTENT AREA */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
         
-        {/* === TAB 1: OVERVIEW / FEEDBACK === */}
+        {/* === TAB 1: OVERVIEW / FEEDBACK (FR6.3 ANONYMIZED) === */}
         {activeTab === 'overview' && (
             <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ fontSize: '20px', fontFamily: 'Georgia, serif', color: '#111827', marginBottom: '20px', borderBottom: '2px solid #f3f4f6', paddingBottom: '10px' }}>Student Feedback & Reported Missing Skills</h3>
-                <div style={{padding: '40px 20px', textAlign: 'center', color: '#6b7280'}}>
-                    <span style={{ fontSize: '40px', display: 'block', marginBottom: '10px' }}> inbox_zero </span>
-                    <p style={{ fontSize: '16px' }}>No new student feedback submitted this week.</p>
-                </div>
+                <h3 style={{ fontSize: '20px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", color: '#111827', marginBottom: '20px', borderBottom: '2px solid #f3f4f6', paddingBottom: '10px' }}>
+                    Student Feedback & Reported Missing Skills
+                </h3>
+                
+                {feedback.length === 0 ? (
+                    <div style={{padding: '40px 20px', textAlign: 'center', color: '#6b7280'}}>
+                        <span style={{ fontSize: '40px', display: 'block', marginBottom: '10px' }}>📬</span>
+                        <p style={{ fontSize: '16px' }}>No new student feedback submitted yet.</p>
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '10px' }}>
+                            Showing <strong>{feedback.length}</strong> anonymized reports from students. 
+                            Use this data to identify gaps in the current curriculum.
+                        </p>
+                        
+                        {feedback.map((report, idx) => (
+                            <div key={idx} style={{ 
+                                padding: '20px', borderRadius: '10px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                                borderLeft: `5px solid ${report.category === 'Technical' ? '#4f46e5' : '#10b981'}`
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                                    <div>
+                                        <span style={{ fontSize: '11px', fontWeight: '800', backgroundColor: '#e2e8f0', color: '#475569', padding: '3px 8px', borderRadius: '4px', textTransform: 'uppercase', marginRight: '10px' }}>
+                                            {report.category}
+                                        </span>
+                                        <strong style={{ fontSize: '18px', color: '#1e293b' }}>{report.skill_name}</strong>
+                                    </div>
+                                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                                        {new Date(report.created_at).toLocaleDateString()}
+                                    </span>
+
+                                </div>
+                                <p style={{ margin: 0, color: '#475569', fontSize: '15px', lineHeight: '1.6', fontStyle: 'italic' }}>
+                                    "{report.reason}"
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         )}
 
@@ -207,7 +255,7 @@ const AdminDashboard = ({ user, onLogout }) => {
         {activeTab === 'skills' && (
             <div>
                 <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-                    <h3 style={{ fontSize: '20px', fontFamily: 'Georgia, serif', color: '#111827', marginBottom: '10px' }}>Cohort Skills Gap Heatmap</h3>
+                    <h3 style={{ fontSize: '20px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", color: '#111827', marginBottom: '10px' }}>Cohort Skills Gap Heatmap</h3>
                     <p style={{marginBottom: '25px', color: '#6b7280', fontSize: '14px'}}>
                         Scores represent average competency based on AI Roadmaps. 
                         <span style={{color: '#ef4444', fontWeight: 'bold', marginLeft: '10px', backgroundColor: '#fef2f2', padding: '2px 8px', borderRadius: '4px'}}>Red = Critical Gap</span>
@@ -256,12 +304,12 @@ const AdminDashboard = ({ user, onLogout }) => {
         {/* === TAB 4: MODERATION === */}
         {activeTab === 'moderation' && (
             <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-                <h2 style={{ fontSize: '24px', fontFamily: 'Georgia, serif', color: '#111827', marginBottom: '20px' }}>Pending Content Review</h2>
+                <h2 style={{ fontSize: '24px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", color: '#111827', marginBottom: '20px' }}>Pending Content Review</h2>
                 
                 {posts.filter(p => p.status === 'pending').length === 0 ? (
                     <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '60px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'center', borderTop: '4px solid #10b981' }}>
                         <span style={{ fontSize: '40px', display: 'block', marginBottom: '15px' }}>✅</span>
-                        <h3 style={{ fontSize: '20px', fontFamily: 'Georgia, serif', color: '#111827', margin: '0 0 10px 0' }}>All Caught Up!</h3>
+                        <h3 style={{ fontSize: '20px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", color: '#111827', margin: '0 0 10px 0' }}>All Caught Up!</h3>
                         <p style={{color: '#6b7280'}}>No pending posts to review at this time.</p>
                     </div>
                 ) : (
@@ -274,7 +322,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                                     <span style={{fontSize: '12px', fontWeight: 'bold', color: '#d97706', textTransform: 'uppercase', letterSpacing: '0.5px', backgroundColor: '#fef3c7', padding: '4px 10px', borderRadius: '12px'}}>
                                         Requires Approval
                                     </span>
-                                    <h3 style={{fontSize: '22px', color: '#111827', margin: '10px 0 5px 0', fontFamily: 'Georgia, serif'}}>{post.title}</h3>
+                                    <h3 style={{fontSize: '22px', color: '#111827', margin: '10px 0 5px 0', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif"}}>{post.title}</h3>
                                 </div>
                                 <span style={{fontSize: '12px', background: '#e5e7eb', padding: '6px 12px', borderRadius: '12px', color: '#374151', fontWeight: 'bold', textTransform: 'uppercase'}}>
                                     {post.post_type.replace('_', ' ')}
@@ -332,21 +380,26 @@ const AdminDashboard = ({ user, onLogout }) => {
         {/* === ⚡ NEW TAB 5: CONTENT ENGINE === */}
         {activeTab === 'content' && (
             <div style={{ maxWidth: '800px', margin: '0 auto', backgroundColor: 'white', borderRadius: '12px', padding: '40px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderTop: `4px solid ${umBlue}` }}>
-                <h3 style={{ fontSize: '24px', fontFamily: 'Georgia, serif', color: '#111827', marginBottom: '10px' }}>Database Seeder Engine</h3>
+                <h3 style={{ fontSize: '24px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", color: '#111827', marginBottom: '10px' }}>AI Database Builder</h3>
                 <p style={{ color: '#6b7280', fontSize: '15px', marginBottom: '30px', lineHeight: '1.6' }}>
-                    This module fulfills <strong>FR5.1 & FR5.2</strong>. By clicking the sync button below, the system will trigger a background AI worker to fetch and store skills, roadmaps, and resources into the Supabase database. This process is rate-limited to ensure system stability.
+                    This tool automatically populates the platform with learning content. By clicking the button below, a background worker will use AI to generate complete career roadmaps, including required skills, learning resources, and capstone quizzes. This process runs safely in the background so you can continue using the dashboard.
                 </p>
                 
                 <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '30px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                        <span style={{ fontSize: '20px' }}>🤖</span>
-                        <span style={{ fontWeight: '600', color: '#334155' }}>Script Worker:</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                        <span style={{ fontSize: '20px' }}>🧠</span>
+                        <span style={{ fontWeight: '600', color: '#334155', minWidth: '120px' }}>AI Model:</span>
+                        <span style={{ color: '#0f172a', fontSize: '14px', fontWeight: '500' }}>Meta Llama 3 (Powered by Groq)</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                        <span style={{ fontSize: '20px' }}>⚙️</span>
+                        <span style={{ fontWeight: '600', color: '#334155', minWidth: '120px' }}>Background File:</span>
                         <code style={{ backgroundColor: '#e2e8f0', padding: '4px 8px', borderRadius: '4px', fontSize: '13px', color: '#0f172a' }}>background_generator.py</code>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span style={{ fontSize: '20px' }}>🗄️</span>
-                        <span style={{ fontWeight: '600', color: '#334155' }}>Destination:</span>
-                        <span style={{ color: '#0f172a', fontSize: '14px' }}>Supabase (Tables: career, skill, roadmap_step, learning_resource)</span>
+                        <span style={{ fontWeight: '600', color: '#334155', minWidth: '120px' }}>Target Tables:</span>
+                        <span style={{ color: '#0f172a', fontSize: '14px' }}>career, skill, roadmap_step, learning_resource, quiz</span>
                     </div>
                 </div>
 
@@ -360,7 +413,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                         boxShadow: '0 4px 6px rgba(30, 58, 138, 0.2)', transition: 'background 0.2s'
                     }}
                 >
-                    {syncing ? '⏳ Starting Worker...' : '🔄 Execute Offline Data Sync'}
+                    {syncing ? '⏳ Generating Database Content...' : '🚀 Start AI Data Generation'}
                 </button>
 
                 {syncMessage && (

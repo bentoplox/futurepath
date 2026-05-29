@@ -10,42 +10,47 @@ import { styles } from '../../styles/styles';
 const SkillCard = ({ 
   stepNumber, 
   skill, 
-  resources, 
   isCompleted, 
   onUpdateProgress 
 }) => {
   const [showResources, setShowResources] = useState(false);
+  const resources = skill.learning_resource || [];
 
   return (
     <div style={{
       ...styles.skillCard, 
       borderLeft: `5px solid ${isCompleted ? '#10b981' : '#6366f1'}`,
       padding: '20px',
-      marginBottom: '15px',
       backgroundColor: 'white',
-      borderRadius: '8px',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+      borderRadius: '12px',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+      transition: 'all 0.3s',
+      flex: 1
     }}>
       
       {/* HEADER SECTION */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
         
-        <div style={{ maxWidth: '65%' }}>
-          <h3 style={{ margin: '0 0 8px 0', color: '#111827', fontSize: '18px' }}>
-            {isCompleted ? '✅' : '⭕'} Step {stepNumber}: {skill.title}
+        <div style={{ maxWidth: '70%' }}>
+          <p style={{ margin: '0 0 5px 0', fontSize: '12px', fontWeight: '800', color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Step {stepNumber}
+          </p>
+          <h3 style={{ margin: '0 0 8px 0', color: '#111827', fontSize: '18px', fontWeight: '700' }}>
+             {skill.skill_name}
           </h3>
           
           <span style={{ 
-            fontSize: '12px', padding: '4px 10px', borderRadius: '12px',
+            fontSize: '11px', padding: '3px 8px', borderRadius: '12px',
             backgroundColor: isCompleted ? '#d1fae5' : '#e0e7ff',
             color: isCompleted ? '#065f46' : '#4338ca',
-            fontWeight: '600'
+            fontWeight: '700',
+            textTransform: 'uppercase'
           }}>
-            {isCompleted ? 'Completed' : 'Ready to Learn'}
+            {isCompleted ? 'Module Completed ✓' : 'Ready to Learn'}
           </span>
         </div>
 
-        {/* JUST A SIMPLE CHECKBOX NOW */}
+        {/* CHECKBOX */}
         <label style={{ 
             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
             padding: '8px 12px', borderRadius: '6px', border: '1px solid #e5e7eb',
@@ -57,26 +62,35 @@ const SkillCard = ({
                 onChange={onUpdateProgress} 
                 style={{ width: '18px', height: '18px', cursor: 'pointer' }}
             />
-            <span style={{ fontSize: '14px', fontWeight: '500', color: isCompleted ? '#065f46' : '#374151' }}>
-                {isCompleted ? 'Done' : 'Mark as Read'}
+            <span style={{ fontSize: '14px', fontWeight: '600', color: isCompleted ? '#065f46' : '#374151' }}>
+                {isCompleted ? 'Done' : 'Mark as Done'}
             </span>
         </label>
       </div>
 
-      <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '15px' }}>
+      <p style={{ color: '#4b5563', fontSize: '14px', marginBottom: '15px', lineHeight: '1.6' }}>
         {skill.description}
       </p>
 
       {/* RESOURCES TOGGLE */}
-      <button
-        onClick={() => setShowResources(!showResources)}
-        style={{
-          background: 'none', border: 'none', color: '#4f46e5',
-          cursor: 'pointer', fontSize: '14px', fontWeight: '600', padding: '0'
-        }}
-      >
-        {showResources ? 'Hide Learning Resources ▲' : 'Show Learning Resources ▼'}
-      </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <button
+            onClick={() => setShowResources(!showResources)}
+            style={{
+              background: '#f3f4f6', border: '1px solid #e5e7eb', color: '#4f46e5',
+              cursor: 'pointer', fontSize: '13px', fontWeight: '700', padding: '6px 12px',
+              borderRadius: '6px', transition: 'all 0.2s'
+            }}
+          >
+            {showResources ? 'Hide Resources ▲' : 'Show Learning Resources ▼'}
+          </button>
+          
+          {resources.length > 0 && !showResources && (
+              <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                  📦 {resources.length} resources available
+              </span>
+          )}
+      </div>
 
       {showResources && (
         <div style={{ marginTop: '15px', borderTop: '1px solid #f3f4f6', paddingTop: '15px' }}>
