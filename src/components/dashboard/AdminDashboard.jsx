@@ -14,6 +14,7 @@ const AdminDashboard = ({ user, onLogout }) => {
   const [feedback, setFeedback] = useState([]); // ⚡ NEW: Feedback state
   const [stats, setStats] = useState({ students: 0, alumni: 0, pendingPosts: 0 });
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState('matrix'); // 'matrix' or 'feedback'
 
   // ⚡ NEW: States for Content Sync (FR5)
   const [syncing, setSyncing] = useState(false);
@@ -93,6 +94,19 @@ const AdminDashboard = ({ user, onLogout }) => {
       }
   };
 
+  const getTypeColor = (type) => {
+    switch (type) {
+      case 'job': return '#10b981'; // Green
+      case 'internship': return '#f59e0b'; // Yellow
+      case 'resume_review': return '#db2777'; // Pink
+      case 'interview_prep': return '#7c3aed'; // Violet
+      case 'career_advice': return '#0284c7'; // Light Blue
+      case 'portfolio_review': return '#ea580c'; // Orange
+      case 'coffee_chat': return '#9333ea'; // Deep Purple
+      default: return '#4c2882'; // FuturePath Purple
+    }
+  };
+
   const getHeatmapColor = (score) => {
     if (score < 40) return '#ef4444'; 
     if (score < 70) return '#f59e0b'; 
@@ -106,17 +120,25 @@ const AdminDashboard = ({ user, onLogout }) => {
 
   return (
     <div style={{ backgroundColor: '#f9f9f9', minHeight: '100vh', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", margin: '-20px', paddingBottom: '50px' }}>
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes pulse-warning {
+          0% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.7; transform: scale(0.98); background-color: #fee2e2; }
+          100% { opacity: 1; transform: scale(1); }
+        }
+      `}} />
       
       {/* 1. PREMIUM UM BLUE HERO BANNER */}
       <div style={{ 
         backgroundColor: umBlue,
         backgroundImage: `linear-gradient(135deg, ${umBlue} 0%, ${umLightBlue} 100%)`,
         color: 'white',
-        padding: '20px 40px 100px 40px', // Extra bottom padding for floating cards
+        padding: '20px 40px 100px 40px', 
         borderBottomLeftRadius: '20px',
         borderBottomRightRadius: '20px',
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        marginBottom: activeTab === 'overview' ? '0px' : '40px'
       }}>
         {/* Decorative Circle Background */}
         <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '350px', height: '350px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '50%' }}></div>
@@ -145,10 +167,13 @@ const AdminDashboard = ({ user, onLogout }) => {
             ADMINISTRATOR — FSKTM UM
           </span>
           <h1 style={{ fontSize: '42px', margin: '0 0 10px 0', fontWeight: '700', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
-            System <span style={{ color: umGold }}>Overview</span>
+            {activeTab === 'skills' ? 'Skills Gap' : activeTab === 'employability' ? 'Employability' : activeTab === 'moderation' ? 'Content Moderation' : activeTab === 'content' ? 'Content Engine' : 'System Overview'}
           </h1>
           <p style={{ opacity: 0.9, maxWidth: '600px', fontSize: '15px', lineHeight: '1.6', marginBottom: '30px' }}>
-            Monitor graduate employability, analyze cohort skill gaps, and moderate community discussions.
+            {activeTab === 'overview' ? 'Monitor graduate employability, analyze cohort skill gaps, and identify intervention opportunities.' : 
+             activeTab === 'skills' ? 'Detailed matrix of cohort performance across technical skill paths.' :
+             activeTab === 'moderation' ? 'Review and moderate community-contributed job posts and mentorship offers.' :
+             'Access faculty-wide analytics and automated content generation tools.'}
           </p>
 
           {/* IN-BANNER TABS */}
@@ -158,7 +183,7 @@ const AdminDashboard = ({ user, onLogout }) => {
               { id: 'employability', label: '📈 Employability' },
               { id: 'skills', label: '🎯 Skills Gap' },
               { id: 'moderation', label: `🛡️ Moderation ${stats.pendingPosts > 0 ? `(${stats.pendingPosts})` : ''}` },
-              { id: 'content', label: '🗄️ Content Engine' } // ⚡ NEW TAB
+              { id: 'content', label: '🗄️ Content Engine' }
             ].map((tab) => (
               <button 
                   key={tab.id}
@@ -177,71 +202,83 @@ const AdminDashboard = ({ user, onLogout }) => {
         </div>
       </div>
 
-      {/* 2. FLOATING STATS ROW */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', maxWidth: '1200px', margin: '-50px auto 40px auto', padding: '0 20px', position: 'relative', zIndex: 10 }}>
-          <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', textAlign: 'center', borderTop: `4px solid ${umBlue}` }}>
-              <div style={{ fontSize: '36px', fontWeight: 'bold', color: umBlue, marginBottom: '5px' }}>{stats.students}</div>
-              <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Active Students</div>
-          </div>
-          <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', textAlign: 'center', borderTop: `4px solid #10b981` }}>
-              <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#10b981', marginBottom: '5px' }}>{stats.alumni}</div>
-              <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Alumni Network</div>
-          </div>
-          <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', textAlign: 'center', borderTop: `4px solid ${stats.pendingPosts > 0 ? '#ef4444' : '#6b7280'}` }}>
-              <div style={{ fontSize: '36px', fontWeight: 'bold', color: stats.pendingPosts > 0 ? '#ef4444' : '#6b7280', marginBottom: '5px' }}>
-                  {stats.pendingPosts}
-              </div>
-              <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Pending Reviews</div>
-          </div>
-      </div>
-
       {/* 3. MAIN CONTENT AREA */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
         
-        {/* === TAB 1: OVERVIEW / FEEDBACK (FR6.3 ANONYMIZED) === */}
+        {/* === TAB 1: OVERVIEW === */}
         {activeTab === 'overview' && (
-            <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ fontSize: '20px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", color: '#111827', marginBottom: '20px', borderBottom: '2px solid #f3f4f6', paddingBottom: '10px' }}>
-                    Student Feedback & Reported Missing Skills
-                </h3>
-                
-                {feedback.length === 0 ? (
-                    <div style={{padding: '40px 20px', textAlign: 'center', color: '#6b7280'}}>
-                        <span style={{ fontSize: '40px', display: 'block', marginBottom: '10px' }}>📬</span>
-                        <p style={{ fontSize: '16px' }}>No new student feedback submitted yet.</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', marginTop: '-50px', position: 'relative', zIndex: 10 }}>
+            {/* KPI METRIC CARDS (Top of Overview) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+                <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', textAlign: 'center', borderTop: `4px solid ${umBlue}` }}>
+                    <div style={{ fontSize: '36px', fontWeight: 'bold', color: umBlue, marginBottom: '5px' }}>{stats.students}</div>
+                    <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Active Students</div>
+                </div>
+                <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', textAlign: 'center', borderTop: `4px solid #10b981` }}>
+                    <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#10b981', marginBottom: '5px' }}>{stats.alumni}</div>
+                    <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Alumni Network</div>
+                </div>
+                <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', textAlign: 'center', borderTop: `4px solid ${stats.pendingPosts > 0 ? '#ef4444' : '#6b7280'}` }}>
+                    <div style={{ fontSize: '36px', fontWeight: 'bold', color: stats.pendingPosts > 0 ? '#ef4444' : '#6b7280', marginBottom: '5px' }}>
+                        {stats.pendingPosts}
                     </div>
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                        <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '10px' }}>
-                            Showing <strong>{feedback.length}</strong> anonymized reports from students. 
-                            Use this data to identify gaps in the current curriculum.
-                        </p>
-                        
-                        {feedback.map((report, idx) => (
-                            <div key={idx} style={{ 
-                                padding: '20px', borderRadius: '10px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                                borderLeft: `5px solid ${report.category === 'Technical' ? '#4f46e5' : '#10b981'}`
-                            }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                                    <div>
-                                        <span style={{ fontSize: '11px', fontWeight: '800', backgroundColor: '#e2e8f0', color: '#475569', padding: '3px 8px', borderRadius: '4px', textTransform: 'uppercase', marginRight: '10px' }}>
-                                            {report.category}
-                                        </span>
-                                        <strong style={{ fontSize: '18px', color: '#1e293b' }}>{report.skill_name}</strong>
-                                    </div>
-                                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-                                        {new Date(report.created_at).toLocaleDateString()}
-                                    </span>
-
-                                </div>
-                                <p style={{ margin: 0, color: '#475569', fontSize: '15px', lineHeight: '1.6', fontStyle: 'italic' }}>
-                                    "{report.reason}"
-                                </p>
-                            </div>
-                        ))}
-                    </div>
-                )}
+                    <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Pending Reviews</div>
+                </div>
             </div>
+
+            {/* TWO-COLUMN GRID */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '30px' }}>
+               {/* Left: Employability Pulse */}
+               <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '1px solid #f3f4f6' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#4b5563', marginBottom: '20px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Employability Pulse</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div>
+                      <div style={{ fontSize: '12px', color: '#9ca3af', fontWeight: '600', marginBottom: '5px' }}>FACULTY GE SCORE</div>
+                      <div style={{ fontSize: '48px', fontWeight: '800', color: '#111827' }}>81.3%</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '12px', color: '#9ca3af', fontWeight: '600', marginBottom: '5px' }}>UNEMPLOYMENT RATE</div>
+                      <div style={{ fontSize: '32px', fontWeight: '700', color: '#ef4444' }}>18.7%</div>
+                    </div>
+                  </div>
+               </div>
+
+               {/* Right: AI Learning Insights */}
+               <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '1px solid #f3f4f6' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#4b5563', marginBottom: '20px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>AI Learning Insights</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+                    <div style={{ backgroundColor: '#f8fafc', padding: '15px', borderRadius: '8px' }}>
+                      <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', marginBottom: '5px' }}>TOP REQUESTED ROLE</div>
+                      <div style={{ fontSize: '20px', fontWeight: '700', color: '#4c2882' }}>Software Engineer</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '12px', color: '#9ca3af', fontWeight: '600', marginBottom: '5px' }}>TOTAL LLM JOURNEYS INITIALIZED</div>
+                      <div style={{ fontSize: '32px', fontWeight: '800', color: '#111827' }}>142</div>
+                    </div>
+                  </div>
+               </div>
+            </div>
+
+            {/* BOTTOM UTILITY ROW */}
+            <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <button 
+                    onClick={() => setActiveTab('content')}
+                    style={{ background: '#4c2882', color: 'white', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}
+                  >
+                    Trigger AI Database Sync ⚙️
+                  </button>
+                  <p style={{ margin: 0, color: '#6b7280', fontSize: '13px' }}>Last sync: Today at 04:12 AM</p>
+               </div>
+
+               {stats.pendingPosts > 0 && (
+                  <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fee2e2', color: '#991b1b', padding: '10px 20px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '18px' }}>⚠️</span>
+                    <span style={{ fontWeight: '700', fontSize: '13px' }}>Attention: {stats.pendingPosts} community posts require moderation.</span>
+                  </div>
+               )}
+            </div>
+          </div>
         )}
 
         {/* === TAB 2: EMPLOYABILITY DASHBOARD === */}
@@ -255,49 +292,124 @@ const AdminDashboard = ({ user, onLogout }) => {
         {activeTab === 'skills' && (
             <div>
                 <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-                    <h3 style={{ fontSize: '20px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", color: '#111827', marginBottom: '10px' }}>Cohort Skills Gap Heatmap</h3>
-                    <p style={{marginBottom: '25px', color: '#6b7280', fontSize: '14px'}}>
-                        Scores represent average competency based on AI Roadmaps. 
-                        <span style={{color: '#ef4444', fontWeight: 'bold', marginLeft: '10px', backgroundColor: '#fef2f2', padding: '2px 8px', borderRadius: '4px'}}>Red = Critical Gap</span>
-                    </p>
-                    
-                    {/* HEATMAP GRID */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', gap: '2px', backgroundColor: '#e5e7eb', border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
-                        <div style={{ backgroundColor: '#f9fafb', padding: '12px', fontWeight: 'bold', color: '#4b5563', fontSize: '13px', textTransform: 'uppercase' }}>Technical Skill</div>
-                        <div style={{ backgroundColor: '#f9fafb', padding: '12px', fontWeight: 'bold', color: '#4b5563', fontSize: '13px', textTransform: 'uppercase', textAlign: 'center' }}>Year 1</div>
-                        <div style={{ backgroundColor: '#f9fafb', padding: '12px', fontWeight: 'bold', color: '#4b5563', fontSize: '13px', textTransform: 'uppercase', textAlign: 'center' }}>Year 2</div>
-                        <div style={{ backgroundColor: '#f9fafb', padding: '12px', fontWeight: 'bold', color: '#4b5563', fontSize: '13px', textTransform: 'uppercase', textAlign: 'center' }}>Year 3</div>
-                        <div style={{ backgroundColor: '#f9fafb', padding: '12px', fontWeight: 'bold', color: '#4b5563', fontSize: '13px', textTransform: 'uppercase', textAlign: 'center' }}>Year 4</div>
-
-                        {skillHeatmapData.map((row, index) => (
-                            <React.Fragment key={index}>
-                                <div style={{ backgroundColor: 'white', padding: '15px 12px', fontWeight: '600', color: '#374151' }}>{row.skill}</div>
-                                <div style={{ backgroundColor: getHeatmapColor(row.y1), padding: '15px 12px', color: 'white', fontWeight: 'bold', textAlign: 'center' }}>{row.y1}%</div>
-                                <div style={{ backgroundColor: getHeatmapColor(row.y2), padding: '15px 12px', color: 'white', fontWeight: 'bold', textAlign: 'center' }}>{row.y2}%</div>
-                                <div style={{ backgroundColor: getHeatmapColor(row.y3), padding: '15px 12px', color: 'white', fontWeight: 'bold', textAlign: 'center' }}>{row.y3}%</div>
-                                <div style={{ backgroundColor: getHeatmapColor(row.y4), padding: '15px 12px', color: 'white', fontWeight: 'bold', textAlign: 'center' }}>{row.y4}%</div>
-                            </React.Fragment>
-                        ))}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '30px', borderBottom: '1px solid #f3f4f6', paddingBottom: '20px' }}>
+                      <div>
+                        <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#111827', margin: 0 }}>Faculty Skills Matrix</h3>
+                        <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '5px' }}>Analyze competency scores and qualitative feedback from students.</p>
+                      </div>
+                      
+                      {/* SUB-NAV TOGGLE */}
+                      <div style={{ background: '#f3f4f6', padding: '4px', borderRadius: '10px', display: 'flex', gap: '4px' }}>
+                        <button 
+                          onClick={() => setViewMode('matrix')}
+                          style={{ 
+                            padding: '8px 16px', borderRadius: '8px', border: 'none', fontSize: '13px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s',
+                            background: viewMode === 'matrix' ? 'white' : 'transparent',
+                            color: viewMode === 'matrix' ? '#4c2882' : '#6b7280',
+                            boxShadow: viewMode === 'matrix' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
+                          }}
+                        >
+                          📊 Competency Matrix
+                        </button>
+                        <button 
+                          onClick={() => setViewMode('feedback')}
+                          style={{ 
+                            padding: '8px 16px', borderRadius: '8px', border: 'none', fontSize: '13px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s',
+                            background: viewMode === 'feedback' ? 'white' : 'transparent',
+                            color: viewMode === 'feedback' ? '#4c2882' : '#6b7280',
+                            boxShadow: viewMode === 'feedback' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
+                          }}
+                        >
+                          💬 Student Feedback Feed
+                        </button>
+                      </div>
                     </div>
+
+                    {viewMode === 'matrix' ? (
+                      <>
+                        <p style={{marginBottom: '25px', color: '#6b7280', fontSize: '14px'}}>
+                            Scores represent average competency based on AI Roadmaps. 
+                            <span style={{color: '#ef4444', fontWeight: 'bold', marginLeft: '10px', backgroundColor: '#fef2f2', padding: '2px 8px', borderRadius: '4px'}}>Red = Critical Gap</span>
+                        </p>
+                        
+                        {/* HEATMAP GRID */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', gap: '2px', backgroundColor: '#e5e7eb', border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
+                            <div style={{ backgroundColor: '#f9fafb', padding: '12px', fontWeight: 'bold', color: '#4b5563', fontSize: '13px', textTransform: 'uppercase' }}>Technical Skill</div>
+                            <div style={{ backgroundColor: '#f9fafb', padding: '12px', fontWeight: 'bold', color: '#4b5563', fontSize: '13px', textTransform: 'uppercase', textAlign: 'center' }}>Year 1</div>
+                            <div style={{ backgroundColor: '#f9fafb', padding: '12px', fontWeight: 'bold', color: '#4b5563', fontSize: '13px', textTransform: 'uppercase', textAlign: 'center' }}>Year 2</div>
+                            <div style={{ backgroundColor: '#f9fafb', padding: '12px', fontWeight: 'bold', color: '#4b5563', fontSize: '13px', textTransform: 'uppercase', textAlign: 'center' }}>Year 3</div>
+                            <div style={{ backgroundColor: '#f9fafb', padding: '12px', fontWeight: 'bold', color: '#4b5563', fontSize: '13px', textTransform: 'uppercase', textAlign: 'center' }}>Year 4</div>
+
+                            {skillHeatmapData.length > 0 ? skillHeatmapData.map((row, index) => (
+                                <React.Fragment key={index}>
+                                    <div style={{ backgroundColor: 'white', padding: '15px 12px', fontWeight: '600', color: '#374151' }}>{row.skill}</div>
+                                    <div style={{ backgroundColor: getHeatmapColor(row.y1), padding: '15px 12px', color: 'white', fontWeight: 'bold', textAlign: 'center' }}>{row.y1}%</div>
+                                    <div style={{ backgroundColor: getHeatmapColor(row.y2), padding: '15px 12px', color: 'white', fontWeight: 'bold', textAlign: 'center' }}>{row.y2}%</div>
+                                    <div style={{ backgroundColor: getHeatmapColor(row.y3), padding: '15px 12px', color: 'white', fontWeight: 'bold', textAlign: 'center' }}>{row.y3}%</div>
+                                    <div style={{ backgroundColor: getHeatmapColor(row.y4), padding: '15px 12px', color: 'white', fontWeight: 'bold', textAlign: 'center' }}>{row.y4}%</div>
+                                </React.Fragment>
+                            )) : (
+                                <div style={{ gridColumn: 'span 5', backgroundColor: 'white', padding: '40px', textAlign: 'center', color: '#6b7280' }}>No competency data available yet.</div>
+                            )}
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                          <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '10px' }}>
+                              Showing <strong>{feedback.length}</strong> anonymized reports from students. 
+                              Use this data to identify gaps in the current curriculum.
+                          </p>
+                          
+                          <div style={{ maxHeight: '600px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px', paddingRight: '10px' }}>
+                            {feedback.map((report, idx) => (
+                                <div key={idx} style={{ 
+                                    padding: '20px', borderRadius: '10px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                                    borderLeft: `5px solid ${report.category === 'Technical' ? '#4f46e5' : '#10b981'}`
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                                        <div>
+                                            <span style={{ fontSize: '11px', fontWeight: '800', backgroundColor: '#e2e8f0', color: '#475569', padding: '3px 8px', borderRadius: '4px', textTransform: 'uppercase', marginRight: '10px' }}>
+                                                {report.category}
+                                            </span>
+                                            <strong style={{ fontSize: '18px', color: '#1e293b' }}>{report.skill_name}</strong>
+                                        </div>
+                                        <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                                            {new Date(report.created_at).toLocaleDateString()}
+                                        </span>
+
+                                    </div>
+                                    <p style={{ margin: 0, color: '#475569', fontSize: '15px', lineHeight: '1.6', fontStyle: 'italic' }}>
+                                        "{report.reason}"
+                                    </p>
+                                </div>
+                            ))}
+                            {feedback.length === 0 && (
+                              <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>No feedback entries found.</div>
+                            )}
+                          </div>
+                      </div>
+                    )}
                 </div>
 
-                {/* Recommendations */}
-                <div style={{marginTop: '30px', display: 'grid', gap: '20px', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))'}}>
-                    <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderLeft: '5px solid #ef4444' }}>
-                        <h4 style={{fontSize: '16px', fontWeight: '700', color: '#ef4444', margin: '0 0 10px 0'}}>🚨 Critical Gap Detected</h4>
-                        <p style={{color: '#4b5563', fontSize: '15px', lineHeight: '1.5'}}><strong>Cybersecurity</strong> proficiency is below 30% for Year 1-3 students. This falls below the industry benchmark.</p>
-                        <button style={{marginTop: '15px', padding: '8px 16px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600'}}>
-                            Schedule "Cybersec 101" Workshop
-                        </button>
-                    </div>
-                    <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderLeft: '5px solid #f59e0b' }}>
-                         <h4 style={{fontSize: '16px', fontWeight: '700', color: '#f59e0b', margin: '0 0 10px 0'}}>⚠️ Moderate Gap Detected</h4>
-                        <p style={{color: '#4b5563', fontSize: '15px', lineHeight: '1.5'}}><strong>Cloud Computing (AWS)</strong> is lagging in Year 2 cohorts. Early intervention recommended.</p>
-                        <button style={{marginTop: '15px', padding: '8px 16px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600'}}>
-                            Contact AWS Academy Partner
-                        </button>
-                    </div>
-                </div>
+                {/* Recommendations (Only in matrix mode) */}
+                {viewMode === 'matrix' && (
+                  <div style={{marginTop: '30px', display: 'grid', gap: '20px', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))'}}>
+                      <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderLeft: '5px solid #ef4444' }}>
+                          <h4 style={{fontSize: '16px', fontWeight: '700', color: '#ef4444', margin: '0 0 10px 0'}}>🚨 Critical Gap Detected</h4>
+                          <p style={{color: '#4b5563', fontSize: '15px', lineHeight: '1.5'}}><strong>Cybersecurity</strong> proficiency is below 30% for Year 1-3 students. This falls below the industry benchmark.</p>
+                          <button style={{marginTop: '15px', padding: '8px 16px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600'}}>
+                              Schedule "Cybersec 101" Workshop
+                          </button>
+                      </div>
+                      <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderLeft: '5px solid #f59e0b' }}>
+                          <h4 style={{fontSize: '16px', fontWeight: '700', color: '#f59e0b', margin: '0 0 10px 0'}}>⚠️ Moderate Gap Detected</h4>
+                          <p style={{color: '#4b5563', fontSize: '15px', lineHeight: '1.5'}}><strong>Cloud Computing (AWS)</strong> is lagging in Year 2 cohorts. Early intervention recommended.</p>
+                          <button style={{marginTop: '15px', padding: '8px 16px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600'}}>
+                              Contact AWS Academy Partner
+                          </button>
+                      </div>
+                  </div>
+                )}
             </div>
         )}
 
@@ -434,5 +546,4 @@ const AdminDashboard = ({ user, onLogout }) => {
     </div>
   );
 };
-
 export default AdminDashboard;
