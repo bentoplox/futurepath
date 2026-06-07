@@ -9,7 +9,475 @@ import { styles } from '../../styles/styles';
 import EmployabilityDashboard from '../dashboard/EmployabilityDashboard'; // Adjust path if needed!
 
 const AdminDashboard = ({ user, onLogout }) => {
+  // ... (Keep existing states) ...
   const [activeTab, setActiveTab] = useState('overview'); 
+
+  // --- ⚡ RESOURCE MANAGER ---
+  const ResourceManager = () => {
+    const [careerMap, setCareerMap] = useState([]);
+    const [selectedSkill, setSelectedSkill] = useState(null);
+    const [verifiedResources, setVerifiedResources] = useState([]);
+    const [newRes, setNewRes] = useState({ title: '', provider: '', url: '' });
+    const [loadingRes, setLoadingRes] = useState(false);
+    const [expandedCareer, setExpandedCareer] = useState(null);
+
+    useEffect(() => { fetchCareerSkills(); }, []);
+
+    const fetchCareerSkills = async () => {
+        const res = await fetch('http://127.0.0.1:5000/api/admin/career-skills');
+        const data = await res.json();
+        if (data.success) setCareerMap(data.data);
+    };
+
+    const handlePublish = async (cId) => {
+        if (!window.confirm("Make this career LIVE for all students?")) return;
+        const res = await fetch(`http://127.0.0.1:5000/api/admin/career/publish/${cId}`, { method: 'POST' });
+        if (res.ok) { alert("Published Successfully!"); fetchCareerSkills(); }
+    };
+
+    const fetchVerified = async (tag) => {
+        setLoadingRes(true);
+        const res = await fetch(`http://127.0.0.1:5000/api/admin/resources?tag=${tag}`);
+        const data = await res.json();
+        if (data.success) setVerifiedResources(data.resources);
+        setLoadingRes(false);
+    };
+
+    const handleAdd = async (e) => {
+        e.preventDefault();
+        if (!selectedSkill) return;
+        await fetch('http://127.0.0.1:5000/api/admin/resources/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...newRes, concept_tag: selectedSkill.concept_tag })
+        });
+        setNewRes({ title: '', provider: '', url: '' });
+        fetchVerified(selectedSkill.concept_tag);
+    };
+
+    return (
+        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '30px', backgroundColor: 'white', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+            <div style={{ borderRight: '1px solid #f3f4f6', paddingRight: '20px', maxHeight: '70vh', overflowY: 'auto' }}>
+                <h4 style={{ fontSize: '14px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '20px' }}>Curriculum Library</h4>
+                {careerMap.map(career => (
+                    <div key={career.career_id} style={{ marginBottom: '10px' }}>
+                        <div onClick={() => setExpandedCareer(expandedCareer === career.career_id ? null : career.career_id)} style={{ fontWeight: 'bold', color: umBlue, fontSize: '14px', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '10px', borderRadius: '8px', background: expandedCareer === career.career_id ? '#f3f4f6' : 'transparent' }}>
+                            <span>{expandedCareer === career.career_id ? '📂' : '📁'}</span> 
+                            <div style={{ flex: 1 }}>
+                                {career.career_name}
+                                {career.status === 'draft' && <span style={{ marginLeft: '8px', fontSize: '10px', background: umGold, color: '#78350f', padding: '2px 6px', borderRadius: '10px', fontWeight: '800' }}>DRAFT</span>}
+                            </div>
+                        </div>
+                        {expandedCareer === career.career_id && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginLeft: '25px', marginTop: '5px', borderLeft: '2px solid #e5e7eb', paddingLeft: '10px' }}>
+                                {career.status === 'draft' && (
+                                    <button onClick={() => handlePublish(career.career_id)} style={{ background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', padding: '8px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '10px' }}>🚀 PUBLISH NOW</button>
+                                )}
+                                {career.skills.map(skill => (
+                                    <button key={skill.skill_id} onClick={() => { setSelectedSkill(skill); fetchVerified(skill.concept_tag); }} style={{ textAlign: 'left', padding: '8px 12px', borderRadius: '6px', border: 'none', fontSize: '13px', cursor: 'pointer', background: selectedSkill?.skill_id === skill.skill_id ? '#eff6ff' : 'transparent', color: selectedSkill?.skill_id === skill.skill_id ? umLightBlue : '#4b5563', fontWeight: selectedSkill?.skill_id === skill.skill_id ? 'bold' : 'normal' }}>
+                                        {skill.skill_name}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+            <div>
+                {selectedSkill ? (
+                    <div>
+                        <h3 style={{ fontSize: '24px', margin: '0 0 5px 0' }}>{selectedSkill.skill_name}</h3>
+                        <span style={{ fontSize: '12px', color: '#9ca3af', backgroundColor: '#f3f4f6', padding: '3px 8px', borderRadius: '4px' }}>TAG: {selectedSkill.concept_tag}</span>
+                        <div style={{ marginTop: '30px' }}>
+                            <h4 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '15px' }}>Verified Resources</h4>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {verifiedResources.length > 0 ? verifiedResources.map(res => (
+                                    <div key={res.resource_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                                        <div><strong>{res.title}</strong><div style={{ fontSize: '12px', color: '#6b7280' }}>{res.provider} • <a href={res.url} target="_blank" rel="noreferrer" style={{ color: umLightBlue }}>View Link</a></div></div>
+                                        <button onClick={async () => { if (window.confirm("Remove?")) { await fetch(`http://127.0.0.1:5000/api/admin/resources/delete/${res.resource_id}`, { method: 'DELETE' }); fetchVerified(selectedSkill.concept_tag); } }} style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Remove</button>
+                                    </div>
+                                )) : <p>No verified resources yet.</p>}
+                            </div>
+                        </div>
+                        <div style={{ backgroundColor: '#f8fafc', padding: '25px', borderRadius: '12px', border: '1px solid #e2e8f0', marginTop: '30px' }}>
+                            <h4 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '15px' }}>Add Trusted Resource</h4>
+                            <form onSubmit={handleAdd} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                <input placeholder="Title" value={newRes.title} onChange={e => setNewRes({...newRes, title: e.target.value})} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db' }} required />
+                                <input placeholder="Provider" value={newRes.provider} onChange={e => setNewRes({...newRes, provider: e.target.value})} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db' }} required />
+                                <input placeholder="URL" value={newRes.url} onChange={e => setNewRes({...newRes, url: e.target.value})} style={{ gridColumn: 'span 2', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db' }} required />
+                                <button type="submit" style={{ gridColumn: 'span 2', background: umBlue, color: 'white', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>➕ Save to Library</button>
+                            </form>
+                        </div>
+                    </div>
+                ) : <div style={{ textAlign: 'center', padding: '100px', color: '#9ca3af' }}><span style={{ fontSize: '48px' }}>📚</span><p>Select a skill to curate its resources.</p></div>}
+            </div>
+        </div>
+    );
+  };
+
+  // --- ⚡ QUIZ MANAGER ---
+  const QuizManager = () => {
+    const [careerMap, setCareerMap] = useState([]);
+    const [selectedSkill, setSelectedSkill] = useState(null);
+    const [quizzes, setQuizzes] = useState([]);
+    const [editingQuiz, setEditingQuiz] = useState(null);
+    const [loadingQuizzes, setLoadingQuizzes] = useState(false);
+    const [expandedCareer, setExpandedCareer] = useState(null);
+
+    useEffect(() => { fetchCareerSkills(); }, []);
+
+    const fetchCareerSkills = async () => {
+        const res = await fetch('http://127.0.0.1:5000/api/admin/career-skills');
+        const data = await res.json();
+        if (data.success) setCareerMap(data.data);
+    };
+
+    const handlePublish = async (cId) => {
+        if (!window.confirm("Make this career LIVE for all students?")) return;
+        const res = await fetch(`http://127.0.0.1:5000/api/admin/career/publish/${cId}`, { method: 'POST' });
+        if (res.ok) { alert("Published Successfully!"); fetchCareerSkills(); }
+    };
+
+    const fetchQuizzes = async (skillId) => {
+        setLoadingQuizzes(true);
+        const res = await fetch(`http://127.0.0.1:5000/api/admin/quizzes?skill_id=${skillId}`);
+        const data = await res.json();
+        if (data.success) setQuizzes(data.quizzes);
+        setLoadingQuizzes(false);
+    };
+
+    const handleSave = async (e) => {
+        e.preventDefault();
+        const res = await fetch('http://127.0.0.1:5000/api/admin/quizzes/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(editingQuiz)
+        });
+        if (res.ok) {
+            setEditingQuiz(null);
+            fetchQuizzes(selectedSkill.skill_id);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm("Delete this quiz question forever?")) return;
+        await fetch(`http://127.0.0.1:5000/api/admin/quizzes/delete/${id}`, { method: 'DELETE' });
+        fetchQuizzes(selectedSkill.skill_id);
+    };
+
+    const startAdd = () => {
+        setEditingQuiz({
+            skill_id: selectedSkill.skill_id,
+            question: '',
+            options: ['', '', '', ''],
+            correct_answer: '',
+            difficulty: 'Beginner'
+        });
+    };
+
+    return (
+        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '30px', backgroundColor: 'white', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+            <div style={{ borderRight: '1px solid #f3f4f6', paddingRight: '20px', maxHeight: '70vh', overflowY: 'auto' }}>
+                <h4 style={{ fontSize: '14px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '20px' }}>Assessment Bank</h4>
+                {careerMap.map(career => (
+                    <div key={career.career_id} style={{ marginBottom: '10px' }}>
+                        <div onClick={() => setExpandedCareer(expandedCareer === career.career_id ? null : career.career_id)} style={{ fontWeight: 'bold', color: umBlue, fontSize: '14px', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '10px', borderRadius: '8px', background: expandedCareer === career.career_id ? '#f3f4f6' : 'transparent' }}>
+                            <span>{expandedCareer === career.career_id ? '📂' : '📁'}</span> 
+                            <div style={{ flex: 1 }}>
+                                {career.career_name}
+                                {career.status === 'draft' && <span style={{ marginLeft: '8px', fontSize: '10px', background: umGold, color: '#78350f', padding: '2px 6px', borderRadius: '10px', fontWeight: '800' }}>DRAFT</span>}
+                            </div>
+                        </div>
+                        {expandedCareer === career.career_id && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginLeft: '25px', marginTop: '5px', borderLeft: '2px solid #e5e7eb', paddingLeft: '10px' }}>
+                                {career.status === 'draft' && (
+                                    <button onClick={() => handlePublish(career.career_id)} style={{ background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', padding: '8px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '10px' }}>🚀 PUBLISH NOW</button>
+                                )}
+                                {career.skills.map(skill => (
+                                    <button key={skill.skill_id} onClick={() => { setSelectedSkill(skill); fetchQuizzes(skill.skill_id); setEditingQuiz(null); }} style={{ textAlign: 'left', padding: '8px 12px', borderRadius: '6px', border: 'none', fontSize: '13px', cursor: 'pointer', background: selectedSkill?.skill_id === skill.skill_id ? '#eff6ff' : 'transparent', color: selectedSkill?.skill_id === skill.skill_id ? umLightBlue : '#4b5563', fontWeight: selectedSkill?.skill_id === skill.skill_id ? 'bold' : 'normal' }}>
+                                        {skill.skill_name}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+            <div>
+                {selectedSkill ? (
+                    <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+                            <div>
+                                <h3 style={{ fontSize: '24px', margin: '0 0 5px 0' }}>{selectedSkill.skill_name} Quizzes</h3>
+                                <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>Manage evaluation questions for this module.</p>
+                            </div>
+                            <button onClick={startAdd} style={{ padding: '10px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
+                                ➕ Add Question
+                            </button>
+                        </div>
+
+                        {editingQuiz ? (
+                            <div style={{ backgroundColor: '#f8fafc', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                <h4 style={{ margin: '0 0 20px 0' }}>{editingQuiz.quiz_id ? 'Edit Question' : 'New Question'}</h4>
+                                <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                    <div>
+                                        <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>QUESTION TEXT</label>
+                                        <textarea 
+                                            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', marginTop: '5px' }}
+                                            value={editingQuiz.question}
+                                            onChange={e => setEditingQuiz({...editingQuiz, question: e.target.value})}
+                                            required
+                                        />
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                        {editingQuiz.options.map((opt, idx) => (
+                                            <div key={idx}>
+                                                <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#94a3b8' }}>OPTION {idx + 1}</label>
+                                                <input 
+                                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db', marginTop: '5px' }}
+                                                    value={opt}
+                                                    onChange={e => {
+                                                        const newOpts = [...editingQuiz.options];
+                                                        newOpts[idx] = e.target.value;
+                                                        setEditingQuiz({...editingQuiz, options: newOpts});
+                                                    }}
+                                                    required
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                        <div>
+                                            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>CORRECT ANSWER</label>
+                                            <select 
+                                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db', marginTop: '5px' }}
+                                                value={editingQuiz.correct_answer}
+                                                onChange={e => setEditingQuiz({...editingQuiz, correct_answer: e.target.value})}
+                                                required
+                                            >
+                                                <option value="">Select the correct choice</option>
+                                                {editingQuiz.options.map((opt, idx) => opt && (
+                                                    <option key={idx} value={opt}>{opt}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>DIFFICULTY</label>
+                                            <select 
+                                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db', marginTop: '5px' }}
+                                                value={editingQuiz.difficulty}
+                                                onChange={e => setEditingQuiz({...editingQuiz, difficulty: e.target.value})}
+                                            >
+                                                <option value="Beginner">Beginner</option>
+                                                <option value="Intermediate">Intermediate</option>
+                                                <option value="Advanced">Advanced</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                                        <button type="submit" style={{ flex: 1, padding: '12px', background: umBlue, color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Save Changes</button>
+                                        <button type="button" onClick={() => setEditingQuiz(null)} style={{ padding: '12px 20px', background: '#e5e7eb', color: '#4b5563', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
+                                    </div>
+                                </form>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                {loadingQuizzes ? <p>Loading questions...</p> : (
+                                    quizzes.length > 0 ? quizzes.map(q => (
+                                        <div key={q.quiz_id} style={{ padding: '20px', border: '1px solid #e5e7eb', borderRadius: '12px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
+                                                <span style={{ fontSize: '11px', fontWeight: '800', background: '#eff6ff', color: umLightBlue, padding: '3px 8px', borderRadius: '4px' }}>{q.difficulty}</span>
+                                                <div style={{ display: 'flex', gap: '10px' }}>
+                                                    <button onClick={() => setEditingQuiz(q)} style={{ color: umLightBlue, background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>Edit</button>
+                                                    <button onClick={() => handleDelete(q.quiz_id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>Delete</button>
+                                                </div>
+                                            </div>
+                                            <p style={{ fontWeight: 'bold', margin: '0 0 15px 0', fontSize: '16px' }}>{q.question}</p>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                                {q.options.map((opt, i) => (
+                                                    <div key={i} style={{ padding: '10px', borderRadius: '8px', fontSize: '14px', border: '1px solid #f3f4f6', background: opt === q.correct_answer ? '#dcfce7' : '#f9fafb', color: opt === q.correct_answer ? '#166534' : '#6b7280', borderLeft: opt === q.correct_answer ? '4px solid #10b981' : '1px solid #f3f4f6' }}>
+                                                        {opt} {opt === q.correct_answer && '✓'}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )) : <p style={{ fontStyle: 'italic', color: '#9ca3af', textAlign: 'center', padding: '40px' }}>No questions found for this skill.</p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div style={{ textAlign: 'center', padding: '100px', color: '#9ca3af' }}>
+                        <span style={{ fontSize: '48px' }}>📝</span>
+                        <p>Select a skill from the sidebar to manage its assessment questions.</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+  };
+  // --- ⚡ NEW: INTERACTIVE CONTENT GENERATOR ---
+  const InteractiveGenerator = () => {
+    const [step, setStep] = useState(1); 
+    const [careerName, setCareerName] = useState('');
+    const [draftSteps, setDraftSteps] = useState([]);
+    const [draftQuizzes, setDraftQuizzes] = useState([]);
+    const [draftDescription, setDraftDescription] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const startDrafting = async () => {
+        setLoading(true);
+        const res = await fetch('http://127.0.0.1:5000/api/admin/draft/steps', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ career_name: careerName })
+        });
+        const data = await res.json();
+        if (data.success) {
+            setDraftSteps(data.draft.steps);
+            setDraftDescription(data.draft.description);
+            setStep(2);
+        }
+        setLoading(false);
+    };
+
+    const generateQuizzes = async () => {
+        setLoading(true);
+        const res = await fetch('http://127.0.0.1:5000/api/admin/draft/quizzes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ skills: draftSteps.map(s => s.skill_name) })
+        });
+        const data = await res.json();
+        if (data.success) {
+            setDraftQuizzes(data.draft.quizzes);
+            setStep(3);
+        }
+        setLoading(false);
+    };
+
+    const publishPath = async () => {
+        setLoading(true);
+        const res = await fetch('http://127.0.0.1:5000/api/admin/commit-pathway', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                career_name: careerName,
+                description: draftDescription,
+                steps: draftSteps,
+                quizzes: draftQuizzes
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert("Saved as DRAFT! Finalize in Resource/Quiz Manager and click PUBLISH.");
+            setStep(1);
+            setCareerName('');
+            fetchData();
+        }
+        setLoading(false);
+    };
+
+    // ⚡ EDIT/REJECT LOGIC
+    const removeDraftStep = (index) => setDraftSteps(draftSteps.filter((_, i) => i !== index));
+    const updateDraftStep = (i, f, v) => {
+        const u = [...draftSteps]; u[i][f] = v; setDraftSteps(u);
+    };
+    const removeDraftQuiz = (si, qi) => {
+        const u = [...draftQuizzes]; u[si].questions = u[si].questions.filter((_, i) => i !== qi); setDraftQuizzes(u);
+    };
+    const updateDraftQuiz = (si, qi, field, value) => {
+        const u = [...draftQuizzes];
+        u[si].questions[qi][field] = value;
+        setDraftQuizzes(u);
+    };
+
+    const updateDraftQuizOption = (si, qi, oi, v) => {
+        const u = [...draftQuizzes];
+        u[si].questions[qi].options[oi] = v;
+        setDraftQuizzes(u);
+    };
+
+    return (
+        <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '40px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderTop: `4px solid ${umGold}` }}>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '30px' }}>
+                {[1, 2, 3].map(i => (
+                    <div key={i} style={{ height: '4px', flex: 1, borderRadius: '2px', background: step >= i ? umGold : '#f3f4f6' }}></div>
+                ))}
+            </div>
+
+            {step === 1 && (
+                <div>
+                    <h3 style={{ fontSize: '24px', margin: '0 0 10px 0' }}>Build New Career Path</h3>
+                    <p style={{ color: '#6b7280', marginBottom: '25px' }}>Enter a career name and let AI propose the technical roadmap.</p>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <input placeholder="e.g. Info System Auditor" value={careerName} onChange={e => setCareerName(e.target.value)} style={{ flex: 1, padding: '15px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '16px' }} />
+                        <button onClick={startDrafting} disabled={loading || !careerName} style={{ padding: '0 30px', background: umBlue, color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>{loading ? 'Drafting...' : 'Propose Roadmap'}</button>
+                    </div>
+                </div>
+            )}
+
+            {step === 2 && (
+                <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <h3 style={{ fontSize: '24px', margin: 0 }}>Review Curriculum Draft</h3>
+                        <button onClick={() => setStep(1)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer' }}>← Back</button>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '30px' }}>
+                        {draftSteps.map((s, i) => (
+                            <div key={i} style={{ padding: '15px', border: '1px solid #e5e7eb', borderRadius: '8px', background: '#f9fafb', position: 'relative' }}>
+                                <button onClick={() => removeDraftStep(i)} style={{ position: 'absolute', top: '10px', right: '10px', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 'bold' }}>Reject ✕</button>
+                                <input style={{ background: 'transparent', border: 'none', fontWeight: 'bold', color: umBlue, fontSize: '16px', width: '80%' }} value={s.skill_name} onChange={(e) => updateDraftStep(i, 'skill_name', e.target.value)} />
+                                <textarea style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '13px', color: '#4b5563', marginTop: '8px', resize: 'none' }} value={s.description} onChange={(e) => updateDraftStep(i, 'description', e.target.value)} />
+                            </div>
+                        ))}
+                    </div>
+                    <button onClick={generateQuizzes} disabled={loading || draftSteps.length === 0} style={{ width: '100%', padding: '15px', background: umBlue, color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>{loading ? 'Generating Quizzes...' : 'Next: Generate Quizzes'}</button>
+                </div>
+            )}
+
+            {step === 3 && (
+                <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <h3 style={{ fontSize: '24px', margin: 0 }}>Final Review: Assessments</h3>
+                        <button onClick={() => setStep(2)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer' }}>← Back</button>
+                    </div>
+                    <div style={{ maxHeight: '500px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '30px', paddingRight: '10px' }}>
+                        {draftQuizzes.map((sq, si) => (
+                            <div key={si} style={{ padding: '20px', border: '1px solid #e5e7eb', borderRadius: '12px' }}>
+                                <div style={{ fontWeight: 'bold', color: umLightBlue, marginBottom: '15px', fontSize: '14px', textTransform: 'uppercase' }}>{sq.skill_name}</div>
+                                {sq.questions.map((q, qi) => (
+                                    <div key={qi} style={{ marginBottom: '20px', borderBottom: qi < sq.questions.length - 1 ? '1px solid #f3f4f6' : 'none', paddingBottom: '15px', position: 'relative' }}>
+                                        <button onClick={() => removeDraftQuiz(si, qi)} style={{ position: 'absolute', top: 0, right: 0, border: 'none', background: 'none', color: '#ef4444', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>Delete Question ✕</button>
+                                        
+                                        <label style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 'bold' }}>QUESTION</label>
+                                        <input style={{ width: '90%', padding: '8px 0', border: 'none', borderBottom: '1px solid #e5e7eb', fontSize: '14px', fontWeight: '500', marginBottom: '15px' }} value={q.question} onChange={(e) => updateDraftQuiz(si, qi, 'question', e.target.value)} />
+                                        
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
+                                            {q.options.map((opt, oi) => (
+                                                <div key={oi}>
+                                                    <label style={{ fontSize: '9px', color: '#94a3b8' }}>OPTION {oi+1}</label>
+                                                    <input style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #f3f4f6', fontSize: '12px' }} value={opt} onChange={(e) => updateDraftQuizOption(si, qi, oi, e.target.value)} />
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <label style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 'bold' }}>CORRECT ANSWER</label>
+                                        <select style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '12px', marginTop: '5px' }} value={q.correct_answer} onChange={(e) => updateDraftQuiz(si, qi, 'correct_answer', e.target.value)}>
+                                            {q.options.map((opt, oi) => <option key={oi} value={opt}>{opt}</option>)}
+                                        </select>
+                                    </div>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+                    <button onClick={publishPath} disabled={loading} style={{ width: '100%', padding: '15px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>{loading ? 'Saving...' : '💾 Save as Draft Pathway'}</button>
+                </div>
+            )}
+        </div>
+    );
+  };
+
   const [posts, setPosts] = useState([]);
   const [feedback, setFeedback] = useState([]); // ⚡ NEW: Feedback state
   const [stats, setStats] = useState({ students: 0, alumni: 0, pendingPosts: 0 });
@@ -108,9 +576,10 @@ const AdminDashboard = ({ user, onLogout }) => {
   };
 
   const getHeatmapColor = (score) => {
-    if (score < 40) return '#ef4444'; 
-    if (score < 70) return '#f59e0b'; 
-    return '#10b981'; 
+    if (score === 0) return '#f3f4f6'; // Gray for "No Data"
+    if (score < 50) return '#ef4444'; // Red for < 50%
+    if (score < 75) return '#f59e0b'; // Orange for 50-74%
+    return '#10b981'; // Green for 75%+
   };
 
   // UM Color Palette
@@ -182,6 +651,8 @@ const AdminDashboard = ({ user, onLogout }) => {
               { id: 'overview', label: '📊 Overview' },
               { id: 'employability', label: '📈 Employability' },
               { id: 'skills', label: '🎯 Skills Gap' },
+              { id: 'resources', label: '📚 Resource Manager' },
+              { id: 'quizzes', label: '📝 Quiz Manager' },
               { id: 'moderation', label: `🛡️ Moderation ${stats.pendingPosts > 0 ? `(${stats.pendingPosts})` : ''}` },
               { id: 'content', label: '🗄️ Content Engine' }
             ].map((tab) => (
@@ -205,6 +676,16 @@ const AdminDashboard = ({ user, onLogout }) => {
       {/* 3. MAIN CONTENT AREA */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
         
+        {/* === TAB: RESOURCE MANAGER === */}
+        {activeTab === 'resources' && (
+            <ResourceManager />
+        )}
+
+        {/* === TAB: QUIZ MANAGER === */}
+        {activeTab === 'quizzes' && (
+            <QuizManager />
+        )}
+
         {/* === TAB 1: OVERVIEW === */}
         {activeTab === 'overview' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', marginTop: '-50px', position: 'relative', zIndex: 10 }}>
@@ -491,54 +972,52 @@ const AdminDashboard = ({ user, onLogout }) => {
 
         {/* === ⚡ NEW TAB 5: CONTENT ENGINE === */}
         {activeTab === 'content' && (
-            <div style={{ maxWidth: '800px', margin: '0 auto', backgroundColor: 'white', borderRadius: '12px', padding: '40px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderTop: `4px solid ${umBlue}` }}>
-                <h3 style={{ fontSize: '24px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", color: '#111827', marginBottom: '10px' }}>AI Database Builder</h3>
-                <p style={{ color: '#6b7280', fontSize: '15px', marginBottom: '30px', lineHeight: '1.6' }}>
-                    This tool automatically populates the platform with learning content. By clicking the button below, a background worker will use AI to generate complete career roadmaps, including required skills, learning resources, and capstone quizzes. This process runs safely in the background so you can continue using the dashboard.
-                </p>
+            <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '30px' }}>
                 
-                <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '30px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                        <span style={{ fontSize: '20px' }}>🧠</span>
-                        <span style={{ fontWeight: '600', color: '#334155', minWidth: '120px' }}>AI Model:</span>
-                        <span style={{ color: '#0f172a', fontSize: '14px', fontWeight: '500' }}>Meta Llama 3 (Powered by Groq)</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                        <span style={{ fontSize: '20px' }}>⚙️</span>
-                        <span style={{ fontWeight: '600', color: '#334155', minWidth: '120px' }}>Background File:</span>
-                        <code style={{ backgroundColor: '#e2e8f0', padding: '4px 8px', borderRadius: '4px', fontSize: '13px', color: '#0f172a' }}>background_generator.py</code>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '20px' }}>🗄️</span>
-                        <span style={{ fontWeight: '600', color: '#334155', minWidth: '120px' }}>Target Tables:</span>
-                        <span style={{ color: '#0f172a', fontSize: '14px' }}>career, skill, roadmap_step, learning_resource, quiz</span>
+                {/* 1. INTERACTIVE AI GENERATOR */}
+                <InteractiveGenerator />
+
+                {/* 2. CAREER MANAGEMENT (DELETE/PUBLISH) */}
+                <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '40px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderTop: '4px solid #ef4444' }}>
+                    <h3 style={{ fontSize: '24px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", color: '#111827', marginBottom: '10px' }}>Manage Existing Pathways</h3>
+                    <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '20px' }}>Review, publish, or delete existing roadmaps.</p>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {[...new Map(skillHeatmapData.map(s => [s.career_id, s])).values()].map((c, idx) => (
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #f3f4f6' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <span style={{ fontWeight: '600' }}>{c.career_name}</span>
+                                    {c.career_status === 'draft' && <span style={{ fontSize: '10px', background: umGold, color: '#78350f', padding: '2px 8px', borderRadius: '10px', fontWeight: '800' }}>DRAFT</span>}
+                                </div>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    {c.career_status === 'draft' && (
+                                        <button 
+                                            onClick={async () => {
+                                                if (!window.confirm(`Make ${c.career_name} live for students?`)) return;
+                                                const res = await fetch(`http://127.0.0.1:5000/api/admin/career/publish/${c.career_id}`, { method: 'POST' });
+                                                if (res.ok) { alert("Published!"); fetchData(); }
+                                            }}
+                                            style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}
+                                        >
+                                            🚀 Publish
+                                        </button>
+                                    )}
+                                    <button 
+                                        onClick={async () => {
+                                            if (!window.confirm(`Are you SURE? This will delete the entire ${c.career_name} roadmap and ALL student progress for it.`)) return;
+                                            const res = await fetch(`http://127.0.0.1:5000/api/admin/career/delete/${c.career_id}`, { method: 'DELETE' });
+                                            if (res.ok) { alert("Deleted."); fetchData(); }
+                                        }}
+                                        style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fee2e2', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}
+                                    >
+                                        🗑️ Delete Path
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                        {skillHeatmapData.length === 0 && <p style={{ textAlign: 'center', color: '#9ca3af' }}>No pathways found.</p>}
                     </div>
                 </div>
-
-                <button 
-                    onClick={handleContentSync}
-                    disabled={syncing}
-                    style={{ 
-                        width: '100%', padding: '16px', background: umBlue, color: 'white', 
-                        border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', 
-                        cursor: syncing ? 'not-allowed' : 'pointer', opacity: syncing ? 0.7 : 1,
-                        boxShadow: '0 4px 6px rgba(30, 58, 138, 0.2)', transition: 'background 0.2s'
-                    }}
-                >
-                    {syncing ? '⏳ Generating Database Content...' : '🚀 Start AI Data Generation'}
-                </button>
-
-                {syncMessage && (
-                    <div style={{ 
-                        marginTop: '20px', padding: '15px', borderRadius: '8px', 
-                        backgroundColor: syncMessage.type === 'success' ? '#dcfce7' : '#fee2e2',
-                        color: syncMessage.type === 'success' ? '#166534' : '#991b1b',
-                        border: `1px solid ${syncMessage.type === 'success' ? '#bbf7d0' : '#fecaca'}`,
-                        fontWeight: '500', textAlign: 'center'
-                    }}>
-                        {syncMessage.text}
-                    </div>
-                )}
             </div>
         )}
 

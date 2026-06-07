@@ -36,7 +36,8 @@ export const AuthProvider = ({ children }) => {
   const fetchUserDetails = async (email) => {
     try {
       console.log("[AUTH] Fetching details for email:", email);
-      const { data, error } = await supabase.from('users').select('*').eq('email', email).single();
+      // ⚡ UPDATED: maybeSingle() handles 0 rows gracefully without throwing PGRST116
+      const { data, error } = await supabase.from('users').select('*').eq('email', email).maybeSingle();
       if (error) throw error;
       
       if (data) {
@@ -44,6 +45,8 @@ export const AuthProvider = ({ children }) => {
           setUser(data);
       } else {
           console.warn("[AUTH] No user record found in 'public.users' for this email.");
+          // Ensure we don't stay in a loading state if no record exists
+          setLoading(false);
       }
     } catch (error) {
       console.error('[AUTH] Error fetching user details:', error);

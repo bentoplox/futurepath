@@ -6,9 +6,11 @@
 import sys
 import threading
 import subprocess
+import json
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from supabase import create_client, Client
+from background_generator import get_ai_response, clean_json
 
 # 🔥 WINDOWS CRASH FIX: Forces the terminal to accept all characters/emojis
 if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
@@ -55,9 +57,80 @@ def admin_sync_content():
 @app.route('/api/careers', methods=['GET'])
 def get_all_careers():
     try:
-        res = supabase.table('career').select('*').execute()
+        # Students only see PUBLISHED paths
+        res = supabase.table('career').select('*').eq('status', 'published').execute()
         return jsonify({"success": True, "careers": res.data})
     except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/admin/career/publish/<int:career_id>', methods=['POST'])
+def publish_pathway(career_id):
+    try:
+        supabase.table('career').update({"status": 'published'}).eq('career_id', career_id).execute()
+        return jsonify({"success": True, "message": "Pathway is now LIVE for students!"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/admin/commit-pathway', methods=['POST'])
+def commit_pathway():
+    """Final step: Save the approved draft as a DRAFT career"""
+    data = request.json
+    print(f"[ADMIN] Committing pathway as DRAFT: {data.get('career_name')}")
+    try:
+        # 1. Insert Career as DRAFT
+        career_res = supabase.table('career').insert({
+            "career_name": data['career_name'], 
+            "description": data['description'],
+            "status": "draft"
+        }).execute()
+        career_id = career_res.data[0]['career_id']
+
+        for i, step in enumerate(data['steps']):
+            # 2. Insert Skill
+            skill_res = supabase.table('skill').insert({
+                "skill_name": step['skill_name'], 
+                "skill_category": step['category'], 
+                "description": step['description'],
+                "concept_tag": step.get('concept_tag')
+            }).execute()
+            skill_id = skill_res.data[0]['skill_id']
+
+            # 3. Link Step
+            supabase.table('roadmap_step').insert({
+                "career_id": career_id, "skill_id": skill_id, "step_order": i + 1
+            }).execute()
+
+            # 4. Map Resources
+            tag = step.get('concept_tag')
+            verified = supabase.table('verified_resources').select('*').eq('concept_tag', tag).execute()
+            if verified.data:
+                for res in verified.data:
+                    supabase.table('learning_resource').insert({
+                        "skill_id": skill_id, "title": res['title'], 
+                        "provider": res['provider'], "url": res['url'], "cost_type": "free"
+                    }).execute()
+            else:
+                fallback_url = f"https://www.youtube.com/results?search_query={step['skill_name'].replace(' ', '+')}+tutorial"
+                supabase.table('learning_resource').insert({
+                    "skill_id": skill_id, "title": f"Intro to {step['skill_name']}", 
+                    "provider": "YouTube", "url": fallback_url, "cost_type": "free"
+                }).execute()
+
+            # 5. Insert Approved Quizzes
+            skill_quizzes = [q for q in data['quizzes'] if q['skill_name'] == step['skill_name']]
+            if skill_quizzes:
+                for q_obj in skill_quizzes[0]['questions']:
+                    supabase.table('quiz').insert({
+                        "skill_id": skill_id,
+                        "question": q_obj['question'],
+                        "options": q_obj['options'],
+                        "correct_answer": q_obj['correct_answer'],
+                        "difficulty": q_obj.get('difficulty', 'Beginner')
+                    }).execute()
+
+        return jsonify({"success": True, "message": f"Successfully saved {data['career_name']} as DRAFT!"})
+    except Exception as e:
+        print(f"[ERROR] Committing pathway failed: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route('/api/enroll', methods=['POST'])
@@ -82,12 +155,43 @@ def enroll_user():
 def get_career_roadmap(career_id):
     user_id = request.args.get('user_id')
     try:
-        career_res = supabase.table('career').select('*').eq('career_id', career_id).single().execute()
+        # ⚡ UPDATED: Safer fetch without .single() to avoid PGRST116 crashes
+        career_res = supabase.table('career').select('*').eq('career_id', career_id).execute()
+        if not career_res.data:
+            return jsonify({
+                "success": False, 
+                "error": "This career path no longer exists. Please return to the dashboard and start a new one."
+            }), 404
+        
+        career_data = career_res.data[0]
+        
+        # ⚡ UPDATED: Fetch skill concept_tag to enable verified resource lookup
         steps_res = supabase.table('roadmap_step')\
-            .select('step_id, step_order, skill(skill_id, skill_name, description, learning_resource(resource_id, title, provider, url, cost_type))')\
+            .select('step_id, step_order, skill(skill_id, skill_name, description, concept_tag)')\
             .eq('career_id', career_id)\
             .order('step_order')\
             .execute()
+
+        steps_data = steps_res.data
+        
+        # --- REQUIREMENT A: INTERCEPT AND APPEND VERIFIED RESOURCES ---
+        for step in steps_data:
+            skill = step.get('skill')
+            if skill and skill.get('concept_tag'):
+                concept_tag = skill['concept_tag']
+                # Query the VERIFIED_RESOURCES table for this tag
+                verified_res = supabase.table('verified_resources').select('*').eq('concept_tag', concept_tag).execute()
+                
+                if verified_res.data:
+                    skill['learning_resource'] = verified_res.data
+                else:
+                    # Fallback to search link if no verified resource is found
+                    skill['learning_resource'] = [{
+                        "title": f"Learn {skill['skill_name']} on YouTube",
+                        "provider": "YouTube",
+                        "url": f"https://www.youtube.com/results?search_query={skill['skill_name'].replace(' ', '+')}+tutorial",
+                        "cost_type": "free"
+                    }]
 
         # Fetch user progress if user_id is provided
         completed_steps = []
@@ -115,9 +219,9 @@ def get_career_roadmap(career_id):
 
             # 3. Calculate Eligibility
             # Count steps for this career
-            total_steps_count = len(steps_res.data)
+            total_steps_count = len(steps_data)
             # Count completed steps for this user in THIS specific career
-            career_step_ids = [s['step_id'] for s in steps_res.data]
+            career_step_ids = [s['step_id'] for s in steps_data]
             user_career_completed_count = len([sid for sid in completed_steps if sid in career_step_ids])
 
             if user_career_completed_count == total_steps_count and not is_certified:
@@ -126,7 +230,7 @@ def get_career_roadmap(career_id):
         return jsonify({
             "success": True, 
             "career": career_res.data,
-            "steps": steps_res.data,
+            "steps": steps_data,
             "completed_steps": completed_steps,
             "is_eligible_for_quiz": is_eligible_for_quiz,
             "is_certified": is_certified
@@ -314,7 +418,9 @@ def get_user_dashboard(user_id):
     try:
         # 1. Get all roadmaps for this user
         roadmaps_res = supabase.table('roadmap').select('*, career(*)').eq('user_id', user_id).execute()
-        roadmaps = roadmaps_res.data
+        
+        # ⚡ BUG FIX: Filter out roadmaps where the career was deleted (orphaned records)
+        roadmaps = [r for r in roadmaps_res.data if r.get('career')]
         
         # 2. For each roadmap, calculate detailed progress
         for rm in roadmaps:
@@ -386,47 +492,67 @@ def get_feedback_reports():
 def get_heatmap_data():
     """
     Aggregates quiz results for the Admin Heatmap.
-    Calculates avg score per skill for each academic year (1, 2, 3, 4).
+    Calculates avg score per skill for each academic year.
+    Includes ALL generated skills, even those with 0 attempts.
     """
     try:
-        # 1. Fetch all quiz results joined with user academic_year
-        # We need skill name too
-        res = supabase.table('quiz_result').select('score, skill_id, skill(skill_name), users(academic_year)').execute()
-        raw_data = res.data
+        # 1. Fetch ALL skills in the system + their career context (including status)
+        # We join through roadmap_step to get the career details
+        skills_res = supabase.table('roadmap_step')\
+            .select('skill_id, skill(skill_name), career(career_id, career_name, status)')\
+            .execute()
+        
+        all_roadmap_links = skills_res.data
 
-        if not raw_data:
-            return jsonify({"success": True, "heatmap": []})
+        # 2. Fetch all quiz results joined with user academic_year
+        res = supabase.table('quiz_result').select('score, skill_id, users(academic_year)').execute()
+        raw_results = res.data
 
-        # 2. Aggregate logic
-        # Structure: { skill_id: { "name": "...", "y1": [], "y2": [], "y3": [], "y4": [] } }
+        # 3. Initialize aggregation for EVERY skill link
         aggregation = {}
+        for link in all_roadmap_links:
+            s = link.get('skill')
+            c = link.get('career')
+            if not s or not c: continue
 
-        for item in raw_data:
-            skill_info = item.get('skill')
+            s_id = link['skill_id']
+            # Using a composite key in case a skill is reused across careers
+            key = f"{c['career_id']}_{s_id}"
+            
+            aggregation[key] = {
+                "skill": s['skill_name'],
+                "career_id": c['career_id'],
+                "career_name": c['career_name'],
+                "career_status": c.get('status', 'published'),
+                "y1": [], "y2": [], "y3": [], "y4": []
+            }
+
+        # 4. Map existing results to aggregation
+        for item in raw_results:
+            s_id = item['skill_id']
             user_info = item.get('users')
             
-            if not skill_info or not user_info:
-                continue
+            if not user_info: continue
 
-            s_id = item['skill_id']
-            s_name = skill_info['skill_name']
             year = str(user_info['academic_year'])
             score = item['score']
-
-            if s_id not in aggregation:
-                aggregation[s_id] = {
-                    "skill": s_name,
-                    "y1": [], "y2": [], "y3": [], "y4": []
-                }
             
-            year_key = f"y{year}"
-            if year_key in aggregation[s_id]:
-                aggregation[s_id][year_key].append(score)
+            # Find all career keys that use this skill
+            for key in aggregation:
+                if key.endswith(f"_{s_id}"):
+                    year_key = f"y{year}"
+                    if year_key in aggregation[key]:
+                        aggregation[key][year_key].append(score)
 
-        # 3. Calculate Averages
+        # 5. Calculate Averages (or 0 if no attempts)
         final_heatmap = []
-        for s_id, data in aggregation.items():
-            row = {"skill": data["skill"]}
+        for key, data in aggregation.items():
+            row = {
+                "skill": data["skill"],
+                "career_id": data["career_id"],
+                "career_name": data["career_name"],
+                "career_status": data["career_status"]
+            }
             for y in ["y1", "y2", "y3", "y4"]:
                 scores = data[y]
                 row[y] = round(sum(scores) / len(scores)) if scores else 0
@@ -438,6 +564,212 @@ def get_heatmap_data():
         })
     except Exception as e:
         print(f"[ERROR] Heatmap aggregation failed: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/admin/resources', methods=['GET'])
+def admin_get_resources():
+    tag = request.args.get('tag')
+    try:
+        if tag:
+            res = supabase.table('verified_resources').select('*').eq('concept_tag', tag).execute()
+        else:
+            res = supabase.table('verified_resources').select('*').execute()
+        return jsonify({"success": True, "resources": res.data})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/admin/resources/add', methods=['POST'])
+def admin_add_resource():
+    data = request.json
+    try:
+        res = supabase.table('verified_resources').insert({
+            "concept_tag": data['concept_tag'],
+            "title": data['title'],
+            "provider": data['provider'],
+            "url": data['url'],
+            "cost_type": data.get('cost_type', 'free')
+        }).execute()
+        return jsonify({"success": True, "resource": res.data[0]})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/admin/resources/delete/<int:resource_id>', methods=['DELETE'])
+def admin_delete_resource(resource_id):
+    try:
+        supabase.table('verified_resources').delete().eq('resource_id', resource_id).execute()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/admin/career-skills', methods=['GET'])
+def get_career_skills_map():
+    try:
+        # Get all careers and their skills for the management UI
+        careers = supabase.table('career').select('career_id, career_name, status').execute()
+        result = []
+        for c in careers.data:
+            skills = supabase.table('roadmap_step')\
+                .select('skill(skill_id, skill_name, concept_tag)')\
+                .eq('career_id', c['career_id'])\
+                .execute()
+            result.append({
+                "career_id": c['career_id'],
+                "career_name": c['career_name'],
+                "status": c.get('status', 'published'),
+                "skills": [s['skill'] for s in skills.data if s['skill']]
+            })
+        return jsonify({"success": True, "data": result})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/admin/quizzes', methods=['GET'])
+def admin_get_quizzes():
+    skill_id = request.args.get('skill_id')
+    try:
+        if not skill_id:
+            return jsonify({"success": False, "error": "skill_id is required"}), 400
+        res = supabase.table('quiz').select('*').eq('skill_id', skill_id).execute()
+        return jsonify({"success": True, "quizzes": res.data})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/admin/quizzes/save', methods=['POST'])
+def admin_save_quiz():
+    data = request.json
+    quiz_id = data.get('quiz_id')
+    payload = {
+        "skill_id": data['skill_id'],
+        "question": data['question'],
+        "options": data['options'],
+        "correct_answer": data['correct_answer'],
+        "difficulty": data.get('difficulty', 'Beginner')
+    }
+    try:
+        if quiz_id:
+            res = supabase.table('quiz').update(payload).eq('quiz_id', quiz_id).execute()
+        else:
+            res = supabase.table('quiz').insert(payload).execute()
+        return jsonify({"success": True, "quiz": res.data[0]})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/admin/quizzes/delete/<int:quiz_id>', methods=['DELETE'])
+def admin_delete_quiz(quiz_id):
+    try:
+        supabase.table('quiz').delete().eq('quiz_id', quiz_id).execute()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/admin/career/delete/<int:career_id>', methods=['DELETE'])
+def admin_delete_career(career_id):
+    try:
+        # ⚡ MANUAL CASCADE: Delete dependencies in order to avoid FK violations
+        # 1. Get all steps and skills for this career
+        steps = supabase.table('roadmap_step').select('step_id, skill_id').eq('career_id', career_id).execute()
+        step_ids = [s['step_id'] for s in steps.data]
+        skill_ids = [s['skill_id'] for s in steps.data]
+
+        # 2. Delete progress records and user roadmaps
+        if step_ids:
+            supabase.table('progress_record').delete().in_('step_id', step_ids).execute()
+        supabase.table('roadmap').delete().eq('career_id', career_id).execute()
+
+        # 3. Delete roadmap steps
+        supabase.table('roadmap_step').delete().eq('career_id', career_id).execute()
+
+        # 4. Delete associated skills data (resources, quizzes, results)
+        if skill_ids:
+            supabase.table('learning_resource').delete().in_('skill_id', skill_ids).execute()
+            supabase.table('quiz').delete().in_('skill_id', skill_ids).execute()
+            supabase.table('quiz_result').delete().in_('skill_id', skill_ids).execute()
+            supabase.table('skill').delete().in_('skill_id', skill_ids).execute()
+
+        # 5. Finally, delete the career itself
+        supabase.table('career').delete().eq('career_id', career_id).execute()
+        
+        return jsonify({"success": True, "message": "Career and all dependencies deleted."})
+    except Exception as e:
+        print(f"[ERROR] Career deletion failed: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/admin/draft/steps', methods=['POST'])
+def draft_steps():
+    data = request.json
+    career_name = data.get('career_name')
+    print(f"[ADMIN] Drafting steps for: {career_name}")
+    try:
+        # Get existing verified tags to guide the AI
+        verified_tags_res = supabase.table('verified_resources').select('concept_tag').execute()
+        available_tags = list(set([r['concept_tag'] for r in verified_tags_res.data]))
+        tags_list_str = ", ".join(available_tags)
+
+        prompt = f"""You are a Senior Curriculum Engineer. 
+        TASK: Draft a specialized learning roadmap for a '{career_name}'.
+        
+        RULES:
+        1. CONTENT: Focus EXCLUSIVELY on the technical and professional skills required for an '{career_name}'. 
+           - Avoid generic Software Engineering steps unless they are 100% core to this specific role.
+        2. SKILLS: For each skill, provide a 'concept_tag' (a short slug-style string).
+        3. RESOURCE AWARENESS: 
+           - We already have resources for these tags: [{tags_list_str}]. 
+           - IF (and only if) one of these tags perfectly matches a skill you drafted, use it.
+           - Otherwise, create a NEW specific tag for that skill.
+        
+        Return ONLY a valid JSON object:
+        {{
+            "description": "Professional summary of the {career_name} role",
+            "steps": [
+                {{
+                    "skill_name": "Industry standard name of the skill",
+                    "concept_tag": "specific-tag-name",
+                    "category": "Technical",
+                    "description": "Detailed explanation of why this skill is vital for a {career_name}"
+                }}
+            ]
+        }}"""
+        
+        response_text = get_ai_response(prompt)
+        print(f"[AI] Draft response generated for {career_name}.")
+        draft = json.loads(clean_json(response_text))
+        return jsonify({"success": True, "draft": draft})
+    except Exception as e:
+        print(f"[ERROR] Drafting steps failed: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/admin/draft/quizzes', methods=['POST'])
+def draft_quizzes():
+    data = request.json # Expects a list of skill names/tags
+    skills = data.get('skills', [])
+    print(f"[ADMIN] Drafting quizzes for skills: {skills}")
+    try:
+        prompt = f"""Generate 3 MCQs for each of these skills: {json.dumps(skills)}.
+        RULES:
+        1. 4 options per question.
+        2. Tag difficulty: Beginner, Intermediate, or Advanced.
+        3. 'correct_answer' must match one option exactly.
+        
+        Return ONLY JSON:
+        {{
+            "quizzes": [
+                {{
+                    "skill_name": "Matching skill name from input",
+                    "questions": [
+                        {{
+                            "question": "Text",
+                            "options": ["A", "B", "C", "D"],
+                            "correct_answer": "A",
+                            "difficulty": "Intermediate"
+                        }}
+                    ]
+                }}
+            ]
+        }}"""
+        response_text = get_ai_response(prompt)
+        draft = json.loads(clean_json(response_text))
+        return jsonify({"success": True, "draft": draft})
+    except Exception as e:
+        print(f"[ERROR] Drafting quizzes failed: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == '__main__':
