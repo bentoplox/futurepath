@@ -43,6 +43,19 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
         }
     };
 
+    const handleVote = async (id, vote) => {
+        await fetch('http://127.0.0.1:5000/api/admin/curation/log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                content_type: 'quiz',
+                content_id: id,
+                vote_type: vote
+            })
+        });
+        alert(`Question marked as ${vote}!`);
+    };
+
     const handleDelete = async (id) => {
         if (!window.confirm("Delete this quiz question forever?")) return;
         await fetch(`http://127.0.0.1:5000/api/admin/quizzes/delete/${id}`, { method: 'DELETE' });
@@ -193,7 +206,14 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
                                     quizzes.length > 0 ? quizzes.map(q => (
                                         <div key={q.quiz_id} style={{ padding: '30px', border: '1px solid #e5e7eb', borderRadius: '16px', backgroundColor: 'white', transition: 'transform 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }} onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseOut={e => e.currentTarget.style.transform = 'none'}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-                                                <span style={{ fontSize: '11px', fontWeight: '900', background: '#eff6ff', color: umLightBlue, padding: '4px 12px', borderRadius: '6px', textTransform: 'uppercase' }}>{q.difficulty}</span>
+                                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '11px', fontWeight: '900', background: '#eff6ff', color: umLightBlue, padding: '4px 12px', borderRadius: '6px', textTransform: 'uppercase' }}>{q.difficulty}</span>
+                                                    {/* ⚡ QUIZ QUALITY VOTE */}
+                                                    <div style={{ display: 'flex', gap: '5px' }}>
+                                                        <button onClick={() => handleVote(q.quiz_id, 'upvote')} style={{ background: 'none', border: '1px solid #bbf7d0', padding: '2px 6px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>👍</button>
+                                                        <button onClick={() => handleVote(q.quiz_id, 'downvote')} style={{ background: 'none', border: '1px solid #fee2e2', padding: '2px 6px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>👎</button>
+                                                    </div>
+                                                </div>
                                                 <div style={{ display: 'flex', gap: '15px' }}>
                                                     <button onClick={() => setEditingQuiz(q)} style={{ color: umLightBlue, background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: '800' }}>Edit</button>
                                                     <button onClick={() => handleDelete(q.quiz_id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: '800' }}>Delete</button>

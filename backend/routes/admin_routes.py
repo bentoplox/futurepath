@@ -319,6 +319,31 @@ def reorder_roadmap_skill():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@admin_bp.route('/api/admin/curation/log', methods=['POST'])
+def log_curation_action():
+    data = request.json
+    try:
+        payload = {
+            "content_type": data['content_type'],
+            "content_id": data['content_id'],
+            "vote_type": data['vote_type'],
+            "admin_comment": data.get('admin_comment'),
+            "suggested_value": data.get('suggested_value'),
+            "admin_id": data.get('admin_id')
+        }
+        res = supabase.table('admin_curation_log').insert(payload).execute()
+        return jsonify({"success": True, "log": res.data[0]})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@admin_bp.route('/api/admin/curation/logs', methods=['GET'])
+def get_curation_logs():
+    try:
+        res = supabase.table('admin_curation_log').select('*').order('created_at', desc=True).execute()
+        return jsonify({"success": True, "logs": res.data})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @admin_bp.route('/api/admin/career/publish/<int:career_id>', methods=['POST'])
 def publish_pathway(career_id):
     try:
