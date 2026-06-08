@@ -9,32 +9,77 @@ ai_bp = Blueprint('ai', __name__)
 def draft_steps():
     data = request.json
     career_name = data.get('career_name')
+    print(f"[ADMIN] Drafting steps for: {career_name}")
     try:
         verified_tags_res = supabase.table('verified_resources').select('concept_tag').execute()
         available_tags = list(set([r['concept_tag'] for r in verified_tags_res.data]))
         tags_list_str = ", ".join(available_tags)
 
-        prompt = f"""You are a Senior Curriculum Engineer. Draft specialized roadmap for '{career_name}'.
+        prompt = f"""You are a Senior Curriculum Engineer. 
+        TASK: Draft a specialized learning roadmap for a '{career_name}'.
+        
         RULES:
-        1. CONTENT: Focus exclusively on technical skills for '{career_name}'.
-        2. RESOURCE AWARENESS: Existing tags: [{tags_list_str}]. Use them if perfect match.
-        Return ONLY valid JSON with 'description' and 'steps' (skill_name, concept_tag, category, description)."""
+        1. CONTENT: Focus EXCLUSIVELY on the technical and professional skills required for an '{career_name}'. 
+           - Avoid generic Software Engineering steps unless they are 100% core to this specific role.
+        2. SKILLS: For each skill, provide a 'concept_tag' (a short slug-style string).
+        3. RESOURCE AWARENESS: 
+           - We already have resources for these tags: [{tags_list_str}]. 
+           - IF (and only if) one of these tags perfectly matches a skill you drafted, use it.
+           - Otherwise, create a NEW specific tag for that skill.
+        
+        Return ONLY a valid JSON object matching this exact schema:
+        {{
+            "description": "Professional summary of the {career_name} role",
+            "steps": [
+                {{
+                    "skill_name": "Industry standard name of the skill",
+                    "concept_tag": "specific-tag-name",
+                    "category": "Technical",
+                    "description": "Detailed explanation of why this skill is vital for a {career_name}"
+                }}
+            ]
+        }}"""
         
         response_text = get_ai_response(prompt)
+        print(f"[AI] Draft response generated for {career_name}.")
         draft = json.loads(clean_json(response_text))
         return jsonify({"success": True, "draft": draft})
     except Exception as e:
+        print(f"[ERROR] Drafting steps failed: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 @ai_bp.route('/api/admin/draft/quizzes', methods=['POST'])
 def draft_quizzes():
     skills = request.json.get('skills', [])
+    print(f"[ADMIN] Drafting quizzes for skills: {skills}")
     try:
-        prompt = f"Generate 3 MCQs (4 options, difficulty, correct_answer) for each skill: {json.dumps(skills)}. Return ONLY JSON."
+        prompt = f"""Generate 3 MCQs for each of these skills: {json.dumps(skills)}.
+        RULES:
+        1. 4 options per question.
+        2. Tag difficulty: Beginner, Intermediate, or Advanced.
+        3. 'correct_answer' must match one option exactly.
+        
+        Return ONLY JSON matching this structure:
+        {{
+            "quizzes": [
+                {{
+                    "skill_name": "Matching skill name from input",
+                    "questions": [
+                        {{
+                            "question": "Text",
+                            "options": ["A", "B", "C", "D"],
+                            "correct_answer": "A",
+                            "difficulty": "Intermediate"
+                        }}
+                    ]
+                }}
+            ]
+        }}"""
         response_text = get_ai_response(prompt)
         draft = json.loads(clean_json(response_text))
         return jsonify({"success": True, "draft": draft})
     except Exception as e:
+        print(f"[ERROR] Drafting quizzes failed: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 @ai_bp.route('/api/admin/commit-pathway', methods=['POST'])
