@@ -8,6 +8,9 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
     const [loadingQuizzes, setLoadingQuizzes] = useState(false);
     const [expandedCareer, setExpandedCareer] = useState(null);
 
+    const [generatingQuiz, setGeneratingQuiz] = useState(false);
+    const [quizDraft, setQuizDraft] = useState(null);
+
     useEffect(() => { fetchCareerSkills(); }, []);
 
     const fetchCareerSkills = async () => {
@@ -43,18 +46,28 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
         }
     };
 
-    const handleVote = async (id, vote) => {
-        await fetch('http://127.0.0.1:5000/api/admin/curation/log', {
+    const handleGenerateQuiz = async (skill) => {
+        setGeneratingQuiz(true);
+        const res = await fetch('http://127.0.0.1:5000/api/admin/skill/generate-quiz', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                content_type: 'quiz',
-                content_id: id,
-                vote_type: vote
-            })
+            body: JSON.stringify({ skill_name: skill.skill_name })
         });
-        alert(`Question marked as ${vote}!`);
+        const data = await res.json();
+        if (data.success) setQuizDraft(data.draft);
+        setGeneratingQuiz(false);
     };
+
+    const saveApprovedQuiz = async () => {
+        const res = await fetch('http://127.0.0.1:5000/api/admin/skill/save-quizzes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ skill_id: selectedSkill.skill_id, questions: quizDraft })
+        });
+        if (res.ok) { alert("Quizzes saved!"); setQuizDraft(null); fetchQuizzes(selectedSkill.skill_id); }
+    };
+
+    // ⚡ CLEANUP: Interactive voting buttons removed for Admin. Now handled by Student toggle vote endpoint.
 
     const handleDelete = async (id) => {
         if (!window.confirm("Delete this quiz question forever?")) return;
@@ -127,14 +140,35 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
                                 <h3 style={{ fontSize: '28px', margin: '0 0 5px 0', fontWeight: '800', color: '#111827' }}>{selectedSkill.skill_name}</h3>
                                 <p style={{ color: '#6b7280', fontSize: '15px', margin: 0 }}>Review and refine assessment questions for this technical module.</p>
                             </div>
-                            {!editingQuiz && (
-                                <button onClick={startAdd} style={{ padding: '12px 24px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)' }}>
-                                    <span>➕</span> Add New Question
-                                </button>
+                            {!editingQuiz && !quizDraft && (
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <button onClick={() => handleGenerateQuiz(selectedSkill)} disabled={generatingQuiz} style={{ padding: '12px 20px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px rgba(245, 158, 11, 0.2)' }}>
+                                        {generatingQuiz ? '⏳ Drafting...' : '🧠 Auto-Generate with AI'}
+                                    </button>
+                                    <button onClick={startAdd} style={{ padding: '12px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)' }}>
+                                        <span>➕</span> Manual Input
+                                    </button>
+                                </div>
                             )}
                         </div>
 
-                        {editingQuiz ? (
+                        {quizDraft ? (
+                            <div style={{ backgroundColor: '#fff7ed', padding: '30px', borderRadius: '16px', border: '1px solid #ffedd5', marginBottom: '40px' }}>
+                                <h4 style={{ color: '#9a3412', marginBottom: '15px' }}>📋 Review AI Draft Quizzes</h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '20px' }}>
+                                    {quizDraft.map((q, i) => (
+                                        <div key={i} style={{ background: 'white', padding: '15px', borderRadius: '10px', border: '1px solid #fed7aa' }}>
+                                            <p style={{ fontWeight: 'bold', fontSize: '14px' }}>{q.question}</p>
+                                            <div style={{ fontSize: '12px', color: '#10b981', fontWeight: 'bold' }}>✓ Correct: {q.correct_answer}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <button onClick={saveApprovedQuiz} style={{ flex: 1, padding: '12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>✅ Approve & Save</button>
+                                    <button onClick={() => setQuizDraft(null)} style={{ padding: '12px 25px', background: '#e5e7eb', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Discard</button>
+                                </div>
+                            </div>
+                        ) : editingQuiz ? (
                             <div style={{ backgroundColor: '#f8fafc', padding: '40px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }}>
                                 <h4 style={{ margin: '0 0 25px 0', fontSize: '20px', fontWeight: '700', color: umBlue }}>{editingQuiz.quiz_id ? '✏️ Edit Question' : '✨ New Assessment Question'}</h4>
                                 <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
@@ -208,10 +242,11 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
                                                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                                                     <span style={{ fontSize: '11px', fontWeight: '900', background: '#eff6ff', color: umLightBlue, padding: '4px 12px', borderRadius: '6px', textTransform: 'uppercase' }}>{q.difficulty}</span>
-                                                    {/* ⚡ QUIZ QUALITY VOTE */}
-                                                    <div style={{ display: 'flex', gap: '5px' }}>
-                                                        <button onClick={() => handleVote(q.quiz_id, 'upvote')} style={{ background: 'none', border: '1px solid #bbf7d0', padding: '2px 6px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>👍</button>
-                                                        <button onClick={() => handleVote(q.quiz_id, 'downvote')} style={{ background: 'none', border: '1px solid #fee2e2', padding: '2px 6px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>👎</button>
+                                                    {/* ⚡ QUIZ QUALITY VOTE COUNTERS */}
+                                                    <div style={{ display: 'flex', gap: '5px', backgroundColor: '#f8fafc', padding: '2px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                                                        <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: 'bold' }}>▲ {q.upvotes || 0}</span>
+                                                        <span style={{ fontSize: '12px', color: '#cbd5e1' }}>|</span>
+                                                        <span style={{ fontSize: '12px', color: '#dc2626', fontWeight: 'bold' }}>▼ {q.downvotes || 0}</span>
                                                     </div>
                                                 </div>
                                                 <div style={{ display: 'flex', gap: '15px' }}>

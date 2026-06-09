@@ -298,6 +298,7 @@ const AlumniDashboard = ({ user, onLogout }) => {
               { id: 'jobs', label: '💼 Job Board' },
               { id: 'mentorship', label: '💬 Mentorship Hub' },
               { id: 'stats', label: '📊 Fresh Graduate Data' },
+              { id: 'review', label: '🧠 Curriculum Review' }, // ⚡ NEW TAB
               { id: 'settings', label: '⚙️ Profile Settings' }
             ].map(tab => (
               <button
@@ -318,6 +319,13 @@ const AlumniDashboard = ({ user, onLogout }) => {
       </div>
 
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
+
+        {/* ⚡ TAB: CURRICULUM REVIEW (ALUMNI CROWDSOURCING) */}
+        {activeTab === 'review' && (
+            <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                <AlumniCurriculumReview user={user} />
+            </div>
+        )}
 
         {/* ⚡ TAB 3: FRESH GRADUATE ANALYTICS DISCLOSURE PANEL */}
         {activeTab === 'stats' && (
@@ -520,6 +528,182 @@ const AlumniDashboard = ({ user, onLogout }) => {
       </div>
     </div>
   );
+};
+
+export const AlumniCurriculumReview = ({ user }) => {
+    const [treeData, setTreeData] = useState([]);
+    const [loadingTree, setLoadingTree] = useState(true);
+    
+    // Expand/Collapse state
+    const [expandedCareers, setExpandedCareers] = useState({});
+    const [expandedSkills, setExpandedSkills] = useState({});
+
+    // Feedback Form State
+    const [activeTarget, setActiveTarget] = useState(null); // { id, type, name }
+    const [feedbackType, setFeedbackType] = useState('better_alternative');
+    const [suggestion, setSuggestion] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+
+    useEffect(() => {
+        const fetchTree = async () => {
+            try {
+                const res = await fetch('http://127.0.0.1:5000/api/quality/curriculum-tree');
+                const data = await res.json();
+                if (data.success) setTreeData(data.tree);
+            } catch (err) {
+                console.error("Failed to fetch curriculum tree", err);
+            }
+            setLoadingTree(false);
+        };
+        fetchTree();
+    }, []);
+
+    const toggleCareer = (id) => setExpandedCareers(prev => ({ ...prev, [id]: !prev[id] }));
+    const toggleSkill = (id) => setExpandedSkills(prev => ({ ...prev, [id]: !prev[id] }));
+
+    const handleSelectTarget = (id, type, name) => {
+        setActiveTarget({ id, type, name });
+        // Auto-scroll to form on mobile or small screens could go here
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!activeTarget) return alert("Please select a target from the curriculum tree first.");
+        
+        setSubmitting(true);
+        const payload = {
+            user_id: user.user_id || user.id,
+            user_role: 'alumni',
+            target_type: activeTarget.type,
+            target_id: activeTarget.id,
+            target_name: activeTarget.name,
+            feedback_type: feedbackType,
+            suggested_alternative_text: suggestion
+        };
+
+        try {
+            const res = await fetch('http://127.0.0.1:5000/api/quality/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                alert("Insight submitted to Faculty Admins. Thank you!");
+                setSuggestion('');
+                setActiveTarget(null);
+            } else {
+                alert("Failed to submit insight.");
+            }
+        } catch (err) {
+            alert("Failed to submit insight.");
+        }
+        setSubmitting(false);
+    };
+
+    return (
+      <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '35px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', borderTop: '5px solid #f59e0b', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
+        <h3 style={{ fontSize: '20px', color: '#111827', marginBottom: '10px' }}>🧠 Interactive Curriculum Review</h3>
+        <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '25px', lineHeight: '1.6' }}>Browse the current Faculty curriculum below. Click on any Career, Skill, or Resource to propose industry-aligned alternatives, flag outdated tech, or suggest new additions.</p>
+        
+        <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap' }}>
+            {/* LEFT PANE: CURRICULUM TREE */}
+            <div style={{ flex: '1 1 50%', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', backgroundColor: '#f8fafc', maxHeight: '600px', overflowY: 'auto' }}>
+                <h4 style={{ margin: '0 0 15px 0', color: '#334155', fontSize: '16px' }}>Curriculum Explorer</h4>
+                
+                {loadingTree ? (
+                    <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Loading structure...</div>
+                ) : treeData.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>No curriculum data available.</div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {treeData.map(career => (
+                            <div key={career.id} style={{ backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 15px', backgroundColor: '#f1f5f9', cursor: 'pointer' }} onClick={() => toggleCareer(career.id)}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <span style={{ fontSize: '12px' }}>{expandedCareers[career.id] ? '▼' : '▶'}</span>
+                                        <strong style={{ color: '#1e293b', fontSize: '14px' }}>🗺️ {career.name}</strong>
+                                    </div>
+                                    <button onClick={(e) => { e.stopPropagation(); handleSelectTarget(career.id, 'career_path', career.name); }} style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '4px', border: '1px solid #f59e0b', background: activeTarget?.id === career.id ? '#f59e0b' : 'white', color: activeTarget?.id === career.id ? 'white' : '#b45309', cursor: 'pointer', fontWeight: 'bold' }}>Review</button>
+                                </div>
+                                
+                                {expandedCareers[career.id] && (
+                                    <div style={{ padding: '10px 10px 10px 30px', display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid #e2e8f0' }}>
+                                        {career.skills.length === 0 ? <span style={{ fontSize: '12px', color: '#94a3b8' }}>No skills defined.</span> : career.skills.map(skill => (
+                                            <div key={skill.id} style={{ border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', backgroundColor: '#f8fafc', cursor: 'pointer' }} onClick={() => toggleSkill(skill.id)}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <span style={{ fontSize: '10px', color: '#64748b' }}>{expandedSkills[skill.id] ? '▼' : '▶'}</span>
+                                                        <span style={{ color: '#334155', fontSize: '13px', fontWeight: '600' }}>🧠 {skill.name}</span>
+                                                    </div>
+                                                    <button onClick={(e) => { e.stopPropagation(); handleSelectTarget(skill.id, 'skill', skill.name); }} style={{ padding: '3px 8px', fontSize: '10px', borderRadius: '4px', border: '1px solid #3b82f6', background: activeTarget?.id === skill.id ? '#3b82f6' : 'white', color: activeTarget?.id === skill.id ? 'white' : '#1d4ed8', cursor: 'pointer', fontWeight: 'bold' }}>Review</button>
+                                                </div>
+
+                                                {expandedSkills[skill.id] && (
+                                                    <div style={{ padding: '10px 10px 10px 25px', display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid #e2e8f0', backgroundColor: 'white' }}>
+                                                        {skill.resources.length === 0 ? <span style={{ fontSize: '11px', color: '#94a3b8' }}>No resources mapped.</span> : skill.resources.map(res => (
+                                                            <div key={res.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px', border: '1px solid #f1f5f9', borderRadius: '4px', backgroundColor: '#f8fafc' }}>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
+                                                                    <span style={{ fontSize: '12px', color: '#475569', fontWeight: '500', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>🔗 {res.name}</span>
+                                                                    <a href={res.url} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: '#3b82f6', textDecoration: 'none' }}>{res.provider}</a>
+                                                                </div>
+                                                                <button onClick={() => handleSelectTarget(res.id, 'verified_resource', res.name)} style={{ padding: '3px 8px', fontSize: '10px', borderRadius: '4px', border: '1px solid #10b981', background: activeTarget?.id === res.id ? '#10b981' : 'white', color: activeTarget?.id === res.id ? 'white' : '#047857', cursor: 'pointer', fontWeight: 'bold', flexShrink: 0 }}>Review</button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* RIGHT PANE: FEEDBACK FORM */}
+            <div style={{ flex: '1 1 40%', minWidth: '300px' }}>
+                <div style={{ position: 'sticky', top: '20px', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+                    {activeTarget ? (
+                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                            <div style={{ backgroundColor: '#fef3c7', padding: '12px', borderRadius: '8px', borderLeft: '4px solid #f59e0b' }}>
+                                <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#b45309', textTransform: 'uppercase' }}>Selected Target</span>
+                                <div style={{ fontSize: '15px', color: '#78350f', fontWeight: '800', marginTop: '2px' }}>{activeTarget.name}</div>
+                                <div style={{ fontSize: '10px', color: '#92400e', marginTop: '2px' }}>Type: {activeTarget.type.replace('_', ' ')}</div>
+                            </div>
+
+                            <div>
+                                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', textTransform: 'uppercase' }}>Type of Insight</label>
+                                <select value={feedbackType} onChange={(e) => setFeedbackType(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '8px', fontFamily: 'inherit', backgroundColor: '#f8fafc' }}>
+                                    <option value="better_alternative">Suggest Better Alternative / URL</option>
+                                    <option value="outdated_content">Flag Outdated Content/Tech</option>
+                                    <option value="new_demand_suggestion">Propose New High-Demand Skill</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', textTransform: 'uppercase' }}>Your Professional Recommendation</label>
+                                <textarea value={suggestion} onChange={(e) => setSuggestion(e.target.value)} required rows="5" placeholder="Provide link replacements, explain why the industry has moved away from this tech, or suggest additions..." style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '8px', fontFamily: 'inherit', resize: 'vertical', backgroundColor: '#f8fafc' }} />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                                <button type="button" onClick={() => setActiveTarget(null)} style={{ padding: '12px', flex: 1, backgroundColor: 'white', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
+                                <button type="submit" disabled={submitting} style={{ padding: '12px', flex: 2, background: '#4c2882', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>
+                                    {submitting ? 'Submitting...' : 'Submit Insight'}
+                                </button>
+                            </div>
+                        </form>
+                    ) : (
+                        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
+                            <span style={{ fontSize: '40px', display: 'block', marginBottom: '15px' }}>👈</span>
+                            <p style={{ margin: 0, fontWeight: '500', lineHeight: '1.5' }}>Select a Career, Skill, or Resource from the curriculum tree to provide specific industry feedback.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+      </div>
+    );
 };
 
 export default AlumniDashboard;

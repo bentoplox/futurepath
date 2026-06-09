@@ -99,15 +99,7 @@ const ResourceManager = ({ supabase, umBlue, umLightBlue, umGold }) => {
         fetchCareerSkills();
     };
 
-    // 🎯 NEW: QUALITY VOTING LOGIC
-    const handleVote = async (type, id, vote, comment = "") => {
-        await fetch('http://127.0.0.1:5000/api/admin/curation/log', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content_type: type, content_id: id, vote_type: vote, admin_comment: comment })
-        });
-        alert(`Recorded feedback as ${vote}!`);
-    };
+    // ⚡ CLEANUP: AI Quiz Generation and Voting moved to QuizManager
 
     return (
         <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: '30px', backgroundColor: 'white', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', minHeight: '600px' }}>
@@ -132,7 +124,7 @@ const ResourceManager = ({ supabase, umBlue, umLightBlue, umGold }) => {
                                             <button onClick={() => handleReorder(skill, 'up')} disabled={idx === 0} style={{ border: 'none', background: 'none', fontSize: '10px', cursor: 'pointer', opacity: idx === 0 ? 0.2 : 0.5 }}>▲</button>
                                             <button onClick={() => handleReorder(skill, 'down')} disabled={idx === career.skills.length - 1} style={{ border: 'none', background: 'none', fontSize: '10px', cursor: 'pointer', opacity: idx === career.skills.length - 1 ? 0.2 : 0.5 }}>▼</button>
                                         </div>
-                                        <button onClick={() => { setSelectedSkill(skill); fetchVerified(skill.concept_tag); setQuizDraft(null); }} style={{ flex: 1, textAlign: 'left', padding: '10px 15px', borderRadius: '8px', border: 'none', fontSize: '13px', cursor: 'pointer', background: selectedSkill?.skill_id === skill.skill_id ? '#eff6ff' : 'transparent', color: selectedSkill?.skill_id === skill.skill_id ? umLightBlue : '#4b5563', fontWeight: selectedSkill?.skill_id === skill.skill_id ? '800' : '500', display: 'flex', justifyContent: 'space-between' }}>
+                                        <button onClick={() => { setSelectedSkill(skill); fetchVerified(skill.concept_tag); }} style={{ flex: 1, textAlign: 'left', padding: '10px 15px', borderRadius: '8px', border: 'none', fontSize: '13px', cursor: 'pointer', background: selectedSkill?.skill_id === skill.skill_id ? '#eff6ff' : 'transparent', color: selectedSkill?.skill_id === skill.skill_id ? umLightBlue : '#4b5563', fontWeight: selectedSkill?.skill_id === skill.skill_id ? '800' : '500', display: 'flex', justifyContent: 'space-between' }}>
                                             <span style={{ maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{skill.skill_name}</span>
                                             <span style={{ opacity: 0.5, fontSize: '9px' }}>#{skill.step_order}</span>
                                         </button>
@@ -170,34 +162,10 @@ const ResourceManager = ({ supabase, umBlue, umLightBlue, umGold }) => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
                                     <h3 style={{ fontSize: '28px', margin: 0, fontWeight: '800', color: '#111827' }}>{selectedSkill.skill_name}</h3>
                                     <span style={{ fontSize: '11px', background: umBlue, color: 'white', padding: '2px 8px', borderRadius: '4px' }}>Step {selectedSkill.step_order}</span>
-                                    {/* ⚡ SKILL VOTE */}
-                                    <div style={{ marginLeft: '15px', display: 'flex', gap: '5px' }}>
-                                        <button onClick={() => handleVote('skill', selectedSkill.skill_id, 'upvote')} style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer' }}>👍</button>
-                                        <button onClick={() => handleVote('skill', selectedSkill.skill_id, 'downvote')} style={{ background: '#fef2f2', border: '1px solid #fee2e2', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer' }}>👎</button>
-                                    </div>
                                 </div>
                                 <span style={{ fontSize: '12px', color: umLightBlue, backgroundColor: '#eff6ff', padding: '4px 12px', borderRadius: '6px', fontWeight: '800' }}>TAG: {selectedSkill.concept_tag}</span>
                             </div>
-                            <button onClick={() => handleGenerateQuiz(selectedSkill)} disabled={generatingQuiz || quizDraft} style={{ padding: '12px 24px', background: umGold, color: '#78350f', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>{generatingQuiz ? '⏳ AI Drafting...' : '🧠 Generate AI Quiz'}</button>
                         </div>
-
-                        {quizDraft && (
-                            <div style={{ backgroundColor: '#fff7ed', padding: '30px', borderRadius: '16px', border: '1px solid #ffedd5', marginBottom: '40px' }}>
-                                <h4 style={{ color: '#9a3412', marginBottom: '15px' }}>📋 Review AI Draft Quizzes</h4>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '20px' }}>
-                                    {quizDraft.map((q, i) => (
-                                        <div key={i} style={{ background: 'white', padding: '15px', borderRadius: '10px', border: '1px solid #fed7aa' }}>
-                                            <p style={{ fontWeight: 'bold', fontSize: '14px' }}>{q.question}</p>
-                                            <div style={{ fontSize: '12px', color: '#10b981', fontWeight: 'bold' }}>✓ Correct: {q.correct_answer}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                                <div style={{ display: 'flex', gap: '10px' }}>
-                                    <button onClick={saveApprovedQuiz} style={{ flex: 1, padding: '12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold' }}>✅ Approve & Save</button>
-                                    <button onClick={() => setQuizDraft(null)} style={{ padding: '12px 25px', background: '#e5e7eb', border: 'none', borderRadius: '8px' }}>Discard</button>
-                                </div>
-                            </div>
-                        )}
 
                         <div style={{ marginBottom: '50px' }}>
                             <h4 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '20px' }}>🛡️ Verified Learning Resources</h4>
@@ -207,11 +175,6 @@ const ResourceManager = ({ supabase, umBlue, umLightBlue, umGold }) => {
                                         <div>
                                             <strong>{res.title}</strong>
                                             <div style={{ fontSize: '13px', color: '#6b7280' }}>{res.provider} • <a href={res.url} target="_blank" rel="noreferrer" style={{ color: umLightBlue }}>Visit ↗</a></div>
-                                            {/* ⚡ RESOURCE VOTE */}
-                                            <div style={{ marginTop: '8px', display: 'flex', gap: '10px' }}>
-                                                <button onClick={() => handleVote('resource', res.resource_id, 'upvote')} style={{ fontSize: '11px', border: 'none', background: 'none', cursor: 'pointer', opacity: 0.6 }}>👍 Keep</button>
-                                                <button onClick={() => handleVote('resource', res.resource_id, 'downvote')} style={{ fontSize: '11px', border: 'none', background: 'none', cursor: 'pointer', opacity: 0.6 }}>👎 Hallucinated</button>
-                                            </div>
                                         </div>
                                         <button onClick={async () => { if (window.confirm("Remove?")) { await fetch(`http://127.0.0.1:5000/api/admin/resources/delete/${res.resource_id}`, { method: 'DELETE' }); fetchVerified(selectedSkill.concept_tag); } }} style={{ color: '#ef4444', border: 'none', background: 'none', fontWeight: 'bold', cursor: 'pointer' }}>Remove</button>
                                     </div>

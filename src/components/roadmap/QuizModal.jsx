@@ -13,6 +13,36 @@ const QuizModal = ({ skillId, careerId, onClose, onQuizPass }) => {
   const [showResults, setShowResults] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
   const [score, setScore] = useState(0);
+  const [votingState, setVotingState] = useState({});
+
+  const handleVote = async (type, quizId) => {
+    if (!user) return;
+    
+    // Optimistic UI update
+    setVotingState(prev => {
+        const currentVote = prev[quizId];
+        if (currentVote === type) {
+            const newState = { ...prev };
+            delete newState[quizId]; // Toggle off
+            return newState;
+        }
+        return { ...prev, [quizId]: type };
+    });
+
+    try {
+        await fetch('http://127.0.0.1:5000/api/quiz/vote', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: user.user_id || user.id,
+                quiz_id: quizId,
+                vote_type: type
+            })
+        });
+    } catch (err) {
+        console.error("Failed to submit vote:", err);
+    }
+  };
 
   const isCapstone = !!careerId;
 
@@ -216,7 +246,13 @@ const QuizModal = ({ skillId, careerId, onClose, onQuizPass }) => {
         <div style={{height:'6px', background:'#e5e7eb', borderRadius:'3px', marginBottom:'30px', overflow:'hidden'}}>
             <div style={{height:'100%', background:'#6366f1', width:`${((currentQuestion+1)/questions.length)*100}%`, transition:'width 0.3s'}} />
         </div>
-        <h3 style={{marginBottom:'20px', fontSize:'18px'}}>{question.question}</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', gap: '15px' }}>
+          <h3 style={{ margin: 0, fontSize:'18px' }}>{question.question}</h3>
+          <div style={{ display: 'flex', gap: '5px', flexShrink: 0, backgroundColor: '#f3f4f6', padding: '4px', borderRadius: '8px' }}>
+             <button onClick={() => handleVote('upvote', question.quiz_id)} style={{ background: votingState[question.quiz_id] === 'upvote' ? '#dcfce7' : 'white', border: '1px solid #e5e7eb', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', padding: '4px 8px', color: votingState[question.quiz_id] === 'upvote' ? '#16a34a' : '#6b7280' }} title="Upvote Question">▲</button>
+             <button onClick={() => handleVote('downvote', question.quiz_id)} style={{ background: votingState[question.quiz_id] === 'downvote' ? '#fee2e2' : 'white', border: '1px solid #e5e7eb', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', padding: '4px 8px', color: votingState[question.quiz_id] === 'downvote' ? '#dc2626' : '#6b7280' }} title="Downvote Question">▼</button>
+          </div>
+        </div>
         <div style={styles.optionsContainer}>
             {question.options.map((opt, idx) => (
                 <div key={idx} onClick={() => handleAnswerSelect(idx)} 

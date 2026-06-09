@@ -4,10 +4,56 @@
 // DESCRIPTION: Shows free and paid resources with links to external platforms
 // ============================================================================
 
-import React from 'react';
+import React, { useState } from 'react';
 import { styles } from '../../styles/styles';
+import { useAuth } from '../../context/AuthContext';
 
 const ResourceList = ({ resources }) => {
+  const { user } = useAuth();
+  const [reportState, setReportState] = useState({});
+
+  const handleReportSubmit = async (e, resourceId, title) => {
+    e.preventDefault();
+    if (!user) return;
+    const state = reportState[resourceId];
+    if (!state) return;
+
+    try {
+        await fetch('http://127.0.0.1:5000/api/quality/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: user.user_id || user.id,
+                user_role: 'student',
+                target_type: 'verified_resource',
+                target_id: resourceId,
+                target_name: title,
+                feedback_type: state.reason,
+                suggested_alternative_text: state.text
+            })
+        });
+        alert('Report submitted to admins. Thank you!');
+        setReportState(prev => ({ ...prev, [resourceId]: { ...prev[resourceId], show: false, text: '' } }));
+    } catch(err) {
+        console.error(err);
+        alert('Failed to submit report');
+    }
+  };
+
+  const toggleReport = (id) => {
+      setReportState(prev => ({
+          ...prev,
+          [id]: { show: !prev[id]?.show, reason: prev[id]?.reason || 'broken_link', text: prev[id]?.text || '' }
+      }));
+  };
+
+  const updateReportField = (id, field, value) => {
+      setReportState(prev => ({
+          ...prev,
+          [id]: { ...prev[id], [field]: value }
+      }));
+  };
+
   // --- HELPER: Extract YouTube ID ---
   const getYouTubeId = (url) => {
     if (!url) return null;
@@ -48,6 +94,8 @@ const ResourceList = ({ resources }) => {
             ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg` 
             : `https://ui-avatars.com/api/?name=${encodeURIComponent(resource.provider)}&background=random&color=fff`;
 
+        const rState = reportState[resource.resource_id] || {};
+
         return (
           <div key={resource.resource_id || index} style={{
             ...styles.resourceItem,
@@ -73,9 +121,12 @@ const ResourceList = ({ resources }) => {
                 />
 
                 <div style={{ flex: 1 }}>
-                  <strong style={{ color: '#111827', display: 'block', fontSize: '16px', marginBottom: '6px' }}>
-                    {resource.title}
-                  </strong>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <strong style={{ color: '#111827', display: 'block', fontSize: '16px', marginBottom: '6px' }}>
+                        {resource.title}
+                    </strong>
+                    <button onClick={() => toggleReport(resource.resource_id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '11px', color: '#ef4444', fontWeight: 'bold', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#fef2f2' }} title="Report Broken Link">⚠️ Report</button>
+                  </div>
                   
                   <div style={{ ...styles.resourceMeta, marginTop: '0' }}>
                     <span style={{ fontSize: '12px', fontWeight: '600' }}>{ytId ? '🎬 YouTube' : `📚 ${resource.provider}`}</span>
@@ -108,6 +159,22 @@ const ResourceList = ({ resources }) => {
                   Visit Link ↗
                 </a>
             </div>
+
+            {rState.show && (
+                <form onSubmit={(e) => handleReportSubmit(e, resource.resource_id, resource.title)} style={{ backgroundColor: '#fef2f2', border: '1px solid #fca5a5', padding: '15px', borderRadius: '8px', marginTop: '10px' }}>
+                    <h4 style={{ margin: '0 0 10px 0', color: '#991b1b', fontSize: '13px' }}>Report an Issue with this Resource</h4>
+                    <select value={rState.reason || 'broken_link'} onChange={(e) => updateReportField(resource.resource_id, 'reason', e.target.value)} style={{ width: '100%', padding: '8px', marginBottom: '10px', borderRadius: '6px', border: '1px solid #fca5a5', fontSize: '12px' }}>
+                        <option value="broken_link">The link is broken or gives a 404 error</option>
+                        <option value="outdated_content">The content is outdated</option>
+                        <option value="better_alternative">I know a better resource</option>
+                    </select>
+                    <textarea required value={rState.text || ''} onChange={(e) => updateReportField(resource.resource_id, 'text', e.target.value)} placeholder="Provide brief details..." style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #fca5a5', fontSize: '12px', marginBottom: '10px', fontFamily: 'inherit', resize: 'vertical' }} />
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button type="submit" style={{ background: '#dc2626', color: 'white', padding: '6px 12px', borderRadius: '6px', border: 'none', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>Submit Report</button>
+                        <button type="button" onClick={() => toggleReport(resource.resource_id)} style={{ background: 'transparent', color: '#dc2626', padding: '6px 12px', borderRadius: '6px', border: '1px solid #dc2626', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
+                    </div>
+                </form>
+            )}
 
             {/* IF YOUTUBE: SHOW EMBEDDED PLAYER */}
             {ytId && (

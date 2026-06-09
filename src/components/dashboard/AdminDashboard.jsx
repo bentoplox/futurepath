@@ -8,7 +8,7 @@ import ResourceManager from './admin/ResourceManager';
 import QuizManager from './admin/QuizManager';
 import InteractiveGenerator from './admin/InteractiveGenerator';
 import PathwayList from './admin/PathwayList';
-import CurationManager from './admin/CurationManager';
+import AdminQualityControl from './admin/AdminQualityControl';
 
 const AdminDashboard = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('overview'); 
@@ -111,14 +111,14 @@ const AdminDashboard = ({ user, onLogout }) => {
 
           <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginTop: '30px' }}>
             {[
-              { id: 'overview', label: '📊 Overview' },
-              { id: 'employability', label: '📈 Employability' },
-              { id: 'skills', label: '🎯 Skills Gap' },
-              { id: 'curation', label: '🎯 Quality Control' },
-              { id: 'resources', label: '📚 Resource Manager' },
-              { id: 'quizzes', label: '📝 Quiz Manager' },
-              { id: 'moderation', label: `🛡️ Moderation ${stats.pendingPosts > 0 ? `(${stats.pendingPosts})` : ''}` },
-              { id: 'content', label: '🗄️ Content Engine' }
+              { id: 'overview', label: ' Overview' },
+              { id: 'employability', label: 'Employability' },
+              { id: 'skills', label: 'Skills Gap' },
+              { id: 'curation', label: ' Quality Control' },
+              { id: 'resources', label: ' Resource Manager' },
+              { id: 'quizzes', label: ' Quiz Manager' },
+              { id: 'moderation', label: ` Moderation ${stats.pendingPosts > 0 ? `(${stats.pendingPosts})` : ''}` },
+              { id: 'content', label: ' Content Engine' }
             ].map((tab) => (
               <button 
                   key={tab.id}
@@ -138,7 +138,7 @@ const AdminDashboard = ({ user, onLogout }) => {
       </div>
 
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
-        {activeTab === 'curation' && <CurationManager umBlue={umBlue} umLightBlue={umLightBlue} />}
+        {activeTab === 'curation' && <AdminQualityControl umBlue={umBlue} umLightBlue={umLightBlue} />}
         {activeTab === 'resources' && <ResourceManager supabase={supabase} umBlue={umBlue} umLightBlue={umLightBlue} umGold={umGold} />}
         {activeTab === 'quizzes' && <QuizManager umBlue={umBlue} umLightBlue={umLightBlue} umGold={umGold} />}
         {activeTab === 'content' && (
