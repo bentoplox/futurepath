@@ -52,10 +52,16 @@ def get_heatmap_data():
 
         for item in results_res.data:
             u = item.get('users')
-            if not u: continue
+            if not u or not u.get('academic_year'): continue
+            
+            # Robust string parsing: extract the number from strings like "Year 2" or "2"
+            raw_year = str(u['academic_year']).lower().replace('year', '').strip()
+            if raw_year not in ['1', '2', '3', '4']: continue
+            
+            year_key = f"y{raw_year}"
+            
             for key in aggregation:
                 if key.endswith(f"_{item['skill_id']}"):
-                    year_key = f"y{u['academic_year']}"
                     if year_key in aggregation[key]: 
                         aggregation[key][year_key].append(item['score'])
 

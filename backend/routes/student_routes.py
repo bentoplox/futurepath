@@ -93,15 +93,17 @@ def submit_quiz_graded():
         data = request.get_json()
         student_id = data.get('student_id')
         user_answers = data.get('answers', [])
+        career_id = data.get('career_id')
+        total_score = data.get('total_score')
 
         if not student_id or not user_answers:
             return jsonify({"success": False, "error": "Missing data"}), 400
 
         question_ids = [a['question_id'] for a in user_answers]
-        response = supabase.table('quiz').select('quiz_id, skill_id, correct_answer').in_('quiz_id', question_ids).execute()
+        response = supabase.table('quiz').select('quiz_id, skill_id').in_('quiz_id', question_ids).execute()
         
         quiz_data = response.data
-        submission_map = {str(a['question_id']): a['selected_answer'] for a in user_answers}
+        submission_map = {str(a['question_id']): a.get('is_correct', False) for a in user_answers}
         skill_totals = {}
 
         for item in quiz_data:
@@ -110,7 +112,7 @@ def submit_quiz_graded():
             if s_id not in skill_totals:
                 skill_totals[s_id] = {"correct": 0, "total": 0}
             skill_totals[s_id]["total"] += 1
-            if submission_map.get(q_id) == item['correct_answer']:
+            if submission_map.get(q_id) is True:
                 skill_totals[s_id]["correct"] += 1
 
         results_to_insert = []
@@ -120,6 +122,10 @@ def submit_quiz_graded():
 
         if results_to_insert:
             supabase.table('quiz_result').insert(results_to_insert).execute()
+            
+        # ⚡ BUG FIX: Update Roadmap Status if it was a Capstone
+        if career_id and total_score is not None and total_score >= 66:
+            supabase.table('roadmap').update({"status": "completed"}).eq('user_id', student_id).eq('career_id', career_id).execute()
 
         return jsonify({"success": True, "results": results_to_insert}), 201
     except Exception as e:

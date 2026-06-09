@@ -71,11 +71,21 @@ const QuizModal = ({ skillId, careerId, onClose, onQuizPass }) => {
 
   const handleSubmit = async () => {
     let correctCount = 0;
+    
+    // ⚡ NEW: Build detailed answer payload for the Smart Grader
+    const detailedAnswers = [];
+
     questions.forEach((q, index) => {
         const selectedOptionText = q.options[selectedAnswers[index]]; 
         const selectedOptionIndex = selectedAnswers[index];
+        const isCorrect = isCorrectMatch(selectedOptionText, selectedOptionIndex, q.correct_answer);
         
-        if (isCorrectMatch(selectedOptionText, selectedOptionIndex, q.correct_answer)) {
+        detailedAnswers.push({
+            question_id: q.quiz_id,
+            is_correct: isCorrect
+        });
+
+        if (isCorrect) {
             correctCount++;
         }
     });
@@ -83,20 +93,21 @@ const QuizModal = ({ skillId, careerId, onClose, onQuizPass }) => {
     const percentage = Math.round((correctCount / questions.length) * 100);
     setScore(percentage);
     
-    // ⚡ NEW: SAVE RESULTS TO BACKEND
-    if (isCapstone && user) {
+    // ⚡ SMART GRADER INTEGRATION (Fixed bug: sending one unified payload)
+    if (user) {
         try {
-            await fetch('http://127.0.0.1:5000/api/quiz/submit', {
+            await fetch('http://127.0.0.1:5000/api/submit-quiz', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    user_id: user.user_id,
-                    career_id: careerId,
-                    score: percentage
+                    student_id: user.user_id,
+                    answers: detailedAnswers,
+                    career_id: isCapstone ? careerId : null,
+                    total_score: percentage
                 })
             });
         } catch (err) {
-            console.error("Failed to submit quiz:", err);
+            console.error("Failed to submit detailed quiz results:", err);
         }
     }
 
