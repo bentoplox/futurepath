@@ -117,6 +117,47 @@ def get_quality_control_dashboard():
         print(f"[ERROR] Fetching quality control data: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
+@quality_bp.route('/api/admin/summary-stats', methods=['GET'])
+def get_admin_summary_stats():
+    """Calculates aggregate metrics for the Dashboard Overview scorecard"""
+    try:
+        # 1. User counts by role
+        s_res = supabase.table('users').select('*', count='exact', head=True).eq('role', 'student').execute()
+        a_res = supabase.table('users').select('*', count='exact', head=True).eq('role', 'alumni').execute()
+        
+        # 2. Pending alumni posts
+        p_res = supabase.table('alumni_posts').select('*', count='exact', head=True).eq('status', 'pending').execute()
+        
+        # 3. Unread feedback (Alumni Insights)
+        fa_res = supabase.table('content_feedback').select('*', count='exact', head=True).eq('status', 'pending').eq('user_role', 'alumni').execute()
+        
+        # 4. Unread feedback (Student Reports)
+        fs_res = supabase.table('content_feedback').select('*', count='exact', head=True).eq('status', 'pending').eq('user_role', 'student').execute()
+        
+        return jsonify({
+            "success": True,
+            "stats": {
+                "total_students": s_res.count or 0,
+                "verified_alumni": a_res.count or 0,
+                "pending_moderation": p_res.count or 0,
+                "unread_alumni_insights": fa_res.count or 0,
+                "unread_student_reports": fs_res.count or 0
+            }
+        })
+    except Exception as e:
+        print(f"[ERROR] Fetching summary stats: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@quality_bp.route('/api/admin/mark-feedback-reviewed', methods=['POST'])
+def mark_all_feedback_reviewed():
+    """Bulk updates all pending feedback to 'reviewed' status"""
+    try:
+        supabase.table('content_feedback').update({"status": "reviewed"}).eq('status', 'pending').execute()
+        return jsonify({"success": True, "message": "All pending feedback marked as reviewed"})
+    except Exception as e:
+        print(f"[ERROR] Marking feedback reviewed: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @quality_bp.route('/api/admin/quality-control/resolve/<int:feedback_id>', methods=['POST'])
 def resolve_feedback(feedback_id):
     """Allows Admins to mark feedback as reviewed/implemented"""

@@ -9,6 +9,7 @@ from routes.ai_routes import ai_bp
 from routes.alumni_routes import alumni_bp
 from routes.quality_routes import quality_bp
 from routes.quiz_routes import quiz_bp
+from routes.workshop_routes import workshop_bp
 
 # 🔥 WINDOWS CRASH FIX
 if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
@@ -24,6 +25,7 @@ app.register_blueprint(ai_bp)
 app.register_blueprint(alumni_bp)
 app.register_blueprint(quality_bp)
 app.register_blueprint(quiz_bp)
+app.register_blueprint(workshop_bp)
 
 if __name__ == '__main__':
     print("🚀 FuturePath Modular Backend Starting...")
