@@ -176,13 +176,14 @@ const AIFacultyAdvisor = ({ recommendations, setRecommendations }) => {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <span style={{ 
-                  backgroundColor: rec.urgency_level === 'High' ? '#fee2e2' : '#fef3c7',
-                  color: rec.urgency_level === 'High' ? '#ef4444' : '#d97706',
+                  backgroundColor: rec.urgency_level === 'High' ? '#fef2f2' : '#fff7ed',
+                  color: rec.urgency_level === 'High' ? '#991b1b' : '#9a3412',
                   padding: '4px 12px',
                   borderRadius: '20px',
                   fontSize: '11px',
                   fontWeight: '800',
-                  textTransform: 'uppercase'
+                  textTransform: 'uppercase',
+                  border: `1px solid ${rec.urgency_level === 'High' ? '#991b1b' : '#9a3412'}30`
                 }}>
                   {rec.urgency_level} Urgency
                 </span>
