@@ -14,13 +14,15 @@ const PostComments = ({ postId, currentUser }) => {
 
   const fetchComments = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('post_comments')
-      .select('*, users(name, role)')
-      .eq('post_id', postId)
-      .order('created_at', { ascending: true });
-
-    if (!error) setComments(data);
+    try {
+      const res = await fetch(`http://127.0.0.1:5000/api/discussion/comments/${postId}`);
+      const data = await res.json();
+      if (data.success) {
+        setComments(data.comments || []);
+      }
+    } catch (err) {
+      console.error("Error fetching comments:", err);
+    }
     setLoading(false);
   };
 
@@ -29,16 +31,26 @@ const PostComments = ({ postId, currentUser }) => {
 
     const finalCommentText = replyingTo ? `@${replyingTo} ${newComment}` : newComment;
 
-    const { error } = await supabase.from('post_comments').insert([
-      { post_id: postId, user_id: currentUser.user_id, content: finalCommentText }
-    ]);
-
-    if (error) {
-      alert("Error posting comment: " + error.message);
-    } else {
-      setNewComment(""); 
-      setReplyingTo(null); 
-      fetchComments(); 
+    try {
+      const res = await fetch('http://127.0.0.1:5000/api/discussion/comment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          post_id: postId,
+          user_id: currentUser.user_id || currentUser.id,
+          content: finalCommentText
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNewComment(""); 
+        setReplyingTo(null); 
+        fetchComments();
+      } else {
+        alert("Error posting comment: " + data.error);
+      }
+    } catch (err) {
+      console.error("Comment submission failed:", err);
     }
   };
 

@@ -168,6 +168,22 @@ def get_capstone_quiz(career_id):
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@student_bp.route('/api/user/skill-gap', methods=['POST'])
+def report_skill_gap():
+    data = request.json
+    try:
+        payload = {
+            "user_id": data.get('user_id'),
+            "skill_name": data.get('skill_name'),
+            "category": data.get('category'),
+            "reason": data.get('reason'),
+            "status": "open"
+        }
+        res = supabase.table('student_skill_gaps').insert(payload).execute()
+        return jsonify({"success": True, "gap": res.data[0]})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @student_bp.route('/api/user/profile/<user_id>', methods=['GET'])
 def get_user_profile_stats(user_id):
     try:

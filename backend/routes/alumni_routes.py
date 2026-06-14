@@ -61,6 +61,15 @@ def update_alumni_stats():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@alumni_bp.route('/api/market/stats', methods=['GET'])
+def get_graduate_stats():
+    year = request.args.get('year', 2025)
+    try:
+        res = supabase.table('faculty_ge_data').select('*').eq('year', year).execute()
+        return jsonify({"success": True, "stats": res.data})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @alumni_bp.route('/api/market/insights', methods=['GET'])
 def get_market_insights():
     """Aggregates real early-career alumni data (<=3 years), segmented by Programme"""

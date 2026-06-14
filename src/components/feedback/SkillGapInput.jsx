@@ -20,24 +20,30 @@ const SkillGapInput = ({ user, onBack }) => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.from('student_skill_gaps').insert([
-      {
-        user_id: user.user_id, // Links to the student
-        skill_name: formData.skill_name,
-        category: formData.category,
-        reason: formData.reason
+    try {
+      const res = await fetch('http://127.0.0.1:5000/api/user/skill-gap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.user_id || user.id,
+          skill_name: formData.skill_name,
+          category: formData.category,
+          reason: formData.reason
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSuccess(true);
+        setFormData({ skill_name: '', category: 'Technical', reason: '' });
+        // Auto-hide success message after 4 seconds
+        setTimeout(() => setSuccess(false), 4000);
+      } else {
+        alert("Error submitting feedback: " + data.error);
       }
-    ]);
-
-    setLoading(false);
-
-    if (error) {
-      alert("Error submitting feedback: " + error.message);
-    } else {
-      setSuccess(true);
-      setFormData({ skill_name: '', category: 'Technical', reason: '' });
-      // Auto-hide success message after 4 seconds
-      setTimeout(() => setSuccess(false), 4000);
+    } catch (err) {
+      console.error("Feedback error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 

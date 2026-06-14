@@ -122,19 +122,33 @@ def delete_post(post_id):
         return jsonify({"success": False, "error": str(e)}), 500
     
 # ==========================================
-# 6. GET ALL POSTS (For Alumni Dashboard)
+# 7. GET COMMENTS FOR POST
 # ==========================================
-@discussion_bp.route('/api/discussion/all', methods=['GET'])
-def get_all_discussions():
+@discussion_bp.route('/api/discussion/comments/<uuid:post_id>', methods=['GET'])
+def get_comments(post_id):
     try:
-        # ⚡ FIXED: Explicitly tell Supabase to join via the Author foreign key
-        res = supabase.table('alumni_posts')\
-            .select('*, users!fk_alumni_posts_author(name, current_role, show_workplace)')\
-            .order('created_at', desc=True)\
+        res = supabase.table('post_comments')\
+            .select('*, users(name, role)')\
+            .eq('post_id', post_id)\
+            .order('created_at', desc=False)\
             .execute()
-            
-        return jsonify({"success": True, "posts": res.data})
-        
+        return jsonify({"success": True, "comments": res.data})
     except Exception as e:
-        print("[DB ERROR] Failed to fetch all posts:", str(e))
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# ==========================================
+# 8. POST NEW COMMENT
+# ==========================================
+@discussion_bp.route('/api/discussion/comment', methods=['POST'])
+def add_comment():
+    data = request.json
+    try:
+        payload = {
+            "post_id": data.get('post_id'),
+            "user_id": data.get('user_id'),
+            "content": data.get('content')
+        }
+        res = supabase.table('post_comments').insert(payload).execute()
+        return jsonify({"success": True, "comment": res.data[0]})
+    except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500

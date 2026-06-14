@@ -24,13 +24,13 @@ const EmployabilityDashboard = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const { data: geData, error: geError } = await supabase
-          .from('faculty_ge_data')
-          .select('*')
-          .eq('year', selectedYear);
-
-        if (geError) throw geError;
-        setDbData(geData || []);
+        // ⚡ Rerouted to Flask for secure official stats fetching
+        const res = await fetch(`http://127.0.0.1:5000/api/market/stats?year=${selectedYear}`);
+        const data = await res.json();
+        
+        if (data.success) {
+          setDbData(data.stats || []);
+        }
 
         const mRes = await fetch('http://127.0.0.1:5000/api/market/insights');
         const mData = await mRes.json();
