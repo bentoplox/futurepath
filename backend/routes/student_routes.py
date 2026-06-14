@@ -171,6 +171,11 @@ def get_capstone_quiz(career_id):
 @student_bp.route('/api/user/dashboard/<user_id>', methods=['GET'])
 def get_user_dashboard(user_id):
     try:
+        # 1. Fetch overall stats
+        total_paths_res = supabase.table('roadmap').select('*', count='exact', head=True).eq('user_id', user_id).eq('status', 'completed').execute()
+        total_skills_res = supabase.table('progress_record').select('*', count='exact', head=True).eq('user_id', user_id).eq('completion_status', 'completed').execute()
+        
+        # 2. Fetch roadmaps with career info
         roadmaps_res = supabase.table('roadmap').select('*, career(*)').eq('user_id', user_id).execute()
         roadmaps = [r for r in roadmaps_res.data if r.get('career')]
         
@@ -183,6 +188,13 @@ def get_user_dashboard(user_id):
             rm['progress_percent'] = round((len(completed_res.data) / len(step_ids) * 100)) if step_ids else 0
             rm['is_certified'] = (rm['status'] == 'completed')
 
-        return jsonify({"success": True, "roadmaps": roadmaps})
+        return jsonify({
+            "success": True, 
+            "stats": {
+                "total_paths": total_paths_res.count or 0,
+                "total_skills": total_skills_res.count or 0
+            },
+            "roadmaps": roadmaps
+        })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
