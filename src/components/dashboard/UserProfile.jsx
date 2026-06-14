@@ -15,42 +15,18 @@ const UserProfile = ({ user, onClose, logout }) => {
   useEffect(() => {
     const fetchProfileStats = async () => {
       if (!user) return;
-
+      setLoading(true);
       try {
-        // 1. Fetch Completed Roadmaps
-        const { data: roadmapData, error: roadmapError } = await supabase
-          .from('roadmap')
-          .select(`
-            roadmap_id, 
-            status, 
-            career:career_id ( career_name )
-          `)
-          .eq('user_id', user.user_id || user.id)
-          .eq('status', 'completed');
+        const uid = user.user_id || user.id;
+        const res = await fetch(`http://127.0.0.1:5000/api/user/profile/${uid}`);
+        const data = await res.json();
 
-        if (roadmapError) throw roadmapError;
-        setCompletedRoadmaps(roadmapData || []);
-
-        // 2. Fetch Acquired Skills
-        const { data: skillData, error: skillError } = await supabase
-          .from('progress_record')
-          .select(`
-            roadmap_step!inner (
-              skill!inner (
-                skill_name,
-                skill_category
-              )
-            )
-          `)
-          .eq('user_id', user.user_id || user.id)
-          .eq('completion_status', 'completed');
-
-        if (skillError) throw skillError;
-
-        // Flatten the deep nested structure
-        const skills = skillData.map(item => item.roadmap_step.skill);
-        setAcquiredSkills(skills || []);
-
+        if (data.success) {
+          setCompletedRoadmaps(data.completed_roadmaps || []);
+          setAcquiredSkills(data.acquired_skills || []);
+        } else {
+          console.error("Profile API error:", data.error);
+        }
       } catch (err) {
         console.error("Error fetching profile stats:", err);
       } finally {

@@ -168,6 +168,41 @@ def get_capstone_quiz(career_id):
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@student_bp.route('/api/user/profile/<user_id>', methods=['GET'])
+def get_user_profile_stats(user_id):
+    try:
+        # 1. Fetch Completed Roadmaps (Joining Career)
+        roadmap_res = supabase.table('roadmap')\
+            .select('roadmap_id, status, career:career_id(career_name)')\
+            .eq('user_id', user_id)\
+            .eq('status', 'completed')\
+            .execute()
+        
+        # 2. Fetch Acquired Skills (Joining roadmap_step and skill)
+        # Query progress_record -> roadmap_step -> skill
+        skill_res = supabase.table('progress_record')\
+            .select('roadmap_step!inner(skill!inner(skill_name, skill_category))')\
+            .eq('user_id', user_id)\
+            .eq('completion_status', 'completed')\
+            .execute()
+
+        # Flatten the nested skill structure to match the frontend's expected format
+        # structure: [{"roadmap_step": {"skill": {"skill_name": "...", "skill_category": "..."}}}]
+        acquired_skills = []
+        if skill_res.data:
+            for item in skill_res.data:
+                if item.get('roadmap_step') and item['roadmap_step'].get('skill'):
+                    acquired_skills.append(item['roadmap_step']['skill'])
+
+        return jsonify({
+            "success": True,
+            "completed_roadmaps": roadmap_res.data or [],
+            "acquired_skills": acquired_skills
+        })
+    except Exception as e:
+        print(f"[ERROR] Profile stats aggregation failed: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @student_bp.route('/api/user/dashboard/<user_id>', methods=['GET'])
 def get_user_dashboard(user_id):
     try:
