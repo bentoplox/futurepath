@@ -8,11 +8,12 @@ const ResourceManager = ({ supabase, umBlue, umLightBlue, umGold }) => {
     const [loadingRes, setLoadingRes] = useState(false);
     const [expandedCareer, setExpandedCareer] = useState(null);
 
+    // ⚡ NEW: Lifecycle Filter State
+    const [lifecycleFilter, setLifecycleFilter] = useState('published');
+
     // ⚡ NEW: MANUAL SKILL INSERTION & QUIZ REVIEW
     const [showAddSkill, setShowAddSkill] = useState(false);
     const [newSkill, setNewSkill] = useState({ skill_name: '', description: '', concept_tag: '', step_order: 1 });
-    const [generatingQuiz, setGeneratingQuiz] = useState(false);
-    const [quizDraft, setQuizDraft] = useState(null);
 
     useEffect(() => { fetchCareerSkills(); }, []);
 
@@ -25,7 +26,11 @@ const ResourceManager = ({ supabase, umBlue, umLightBlue, umGold }) => {
     const handlePublish = async (cId) => {
         if (!window.confirm("Make this career LIVE for all students?")) return;
         const res = await fetch(`http://127.0.0.1:5000/api/admin/career/publish/${cId}`, { method: 'POST' });
-        if (res.ok) { alert("Published Successfully!"); fetchCareerSkills(); }
+        if (res.ok) { 
+            alert("Published Successfully!"); 
+            fetchCareerSkills();
+            setLifecycleFilter('published');
+        }
     };
 
     const fetchVerified = async (tag) => {
@@ -63,27 +68,6 @@ const ResourceManager = ({ supabase, umBlue, umLightBlue, umGold }) => {
         }
     };
 
-    const handleGenerateQuiz = async (skill) => {
-        setGeneratingQuiz(true);
-        const res = await fetch('http://127.0.0.1:5000/api/admin/skill/generate-quiz', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ skill_name: skill.skill_name })
-        });
-        const data = await res.json();
-        if (data.success) setQuizDraft(data.draft);
-        setGeneratingQuiz(false);
-    };
-
-    const saveApprovedQuiz = async () => {
-        const res = await fetch('http://127.0.0.1:5000/api/admin/skill/save-quizzes', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ skill_id: selectedSkill.skill_id, questions: quizDraft })
-        });
-        if (res.ok) { alert("Quizzes saved!"); setQuizDraft(null); }
-    };
-
     const handleDeleteSkill = async (skill) => {
         if (!window.confirm(`Delete "${skill.skill_name}"?`)) return;
         const res = await fetch(`http://127.0.0.1:5000/api/admin/career/delete-skill?career_id=${expandedCareer}&skill_id=${skill.skill_id}&step_order=${skill.step_order}`, { method: 'DELETE' });
@@ -99,23 +83,64 @@ const ResourceManager = ({ supabase, umBlue, umLightBlue, umGold }) => {
         fetchCareerSkills();
     };
 
-    // ⚡ CLEANUP: AI Quiz Generation and Voting moved to QuizManager
+    // Filtered pathways for the sidebar
+    const filteredPathways = careerMap.filter(p => p.status === lifecycleFilter);
+
+    const fontStack = "'Aeonik', 'Plus Jakarta Sans', sans-serif";
 
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: '30px', backgroundColor: 'white', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', minHeight: '600px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: '30px', backgroundColor: 'white', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', minHeight: '600px', fontFamily: fontStack }}>
             {/* Sidebar */}
             <div style={{ borderRight: '1px solid #f3f4f6', paddingRight: '20px', maxHeight: '70vh', overflowY: 'auto' }}>
-                <h4 style={{ fontSize: '14px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '20px', letterSpacing: '1px', fontWeight: '800' }}>Curriculum Library</h4>
-                {careerMap.map(career => (
+                
+                {/* ⚡ LIFECYCLE TOGGLE */}
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '25px', backgroundColor: '#f1f5f9', padding: '5px', borderRadius: '10px' }}>
+                    <button 
+                        onClick={() => { setLifecycleFilter('published'); setExpandedCareer(null); setSelectedSkill(null); }}
+                        style={{ 
+                            flex: 1, padding: '8px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: '800', cursor: 'pointer',
+                            background: lifecycleFilter === 'published' ? 'white' : 'transparent',
+                            color: lifecycleFilter === 'published' ? '#065f46' : '#64748b',
+                            boxShadow: lifecycleFilter === 'published' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                        }}
+                    >
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }}></div>
+                        Published
+                    </button>
+                    <button 
+                        onClick={() => { setLifecycleFilter('draft'); setExpandedCareer(null); setSelectedSkill(null); }}
+                        style={{ 
+                            flex: 1, padding: '8px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: '800', cursor: 'pointer',
+                            background: lifecycleFilter === 'draft' ? 'white' : 'transparent',
+                            color: lifecycleFilter === 'draft' ? '#9a3412' : '#64748b',
+                            boxShadow: lifecycleFilter === 'draft' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                        }}
+                    >
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></div>
+                        Drafts
+                    </button>
+                </div>
+
+                <h4 style={{ fontSize: '12px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '20px', letterSpacing: '1px', fontWeight: '800' }}>
+                    {lifecycleFilter === 'published' ? '🌐 Live Library' : '📝 Sandbox Drafts'}
+                </h4>
+
+                {filteredPathways.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '13px', fontStyle: 'italic' }}>
+                        No {lifecycleFilter} pathways found.
+                    </div>
+                ) : filteredPathways.map(career => (
                     <div key={career.career_id} style={{ marginBottom: '10px' }}>
                         <div onClick={() => setExpandedCareer(expandedCareer === career.career_id ? null : career.career_id)} style={{ fontWeight: 'bold', color: umBlue, fontSize: '14px', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '12px', borderRadius: '10px', background: expandedCareer === career.career_id ? '#f8fafc' : 'transparent' }}>
                             <span>{expandedCareer === career.career_id ? '📂' : '📁'}</span> 
-                            <div style={{ flex: 1 }}>{career.career_name} {career.status === 'draft' && <span style={{ fontSize: '10px', background: umGold, color: '#78350f', padding: '2px 6px', borderRadius: '10px' }}>DRAFT</span>}</div>
+                            <div style={{ flex: 1 }}>{career.career_name} {career.status === 'draft' && <span style={{ fontSize: '10px', background: '#fff7ed', color: '#9a3412', padding: '2px 6px', borderRadius: '10px', border: '1px solid #ffedd5', fontWeight: '800' }}>DRAFT</span>}</div>
                         </div>
                         {expandedCareer === career.career_id && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginLeft: '25px', borderLeft: '2px solid #e5e7eb', paddingLeft: '10px' }}>
                                 <div style={{ display: 'flex', gap: '5px', marginBottom: '10px' }}>
-                                    {career.status === 'draft' && <button onClick={() => handlePublish(career.career_id)} style={{ flex: 1, background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', padding: '8px', fontSize: '10px', fontWeight: 'bold' }}>🚀 PUBLISH</button>}
+                                    {career.status === 'draft' && <button onClick={() => handlePublish(career.career_id)} style={{ flex: 1, background: '#065f46', color: 'white', border: 'none', borderRadius: '6px', padding: '8px', fontSize: '10px', fontWeight: 'bold' }}>🚀 PUBLISH</button>}
                                     <button onClick={() => setShowAddSkill(true)} style={{ flex: 1, background: umBlue, color: 'white', border: 'none', borderRadius: '6px', padding: '8px', fontSize: '10px', fontWeight: 'bold' }}>➕ ADD SKILL</button>
                                 </div>
                                 {career.skills.map((skill, idx) => (
@@ -141,17 +166,17 @@ const ResourceManager = ({ supabase, umBlue, umLightBlue, umGold }) => {
             <div>
                 {showAddSkill ? (
                     <div style={{ backgroundColor: '#f8fafc', padding: '40px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                        <h3 style={{ color: umBlue, marginBottom: '20px' }}>Insert Manual Skill</h3>
+                        <h3 style={{ color: umBlue, marginBottom: '20px', fontWeight: '800' }}>Insert Manual Skill</h3>
                         <form onSubmit={handleAddSkill} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '15px' }}>
-                                <input placeholder="Skill Name" value={newSkill.skill_name} onChange={e => setNewSkill({...newSkill, skill_name: e.target.value})} style={{ padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db' }} required />
-                                <input type="number" placeholder="Step" value={newSkill.step_order} onChange={e => setNewSkill({...newSkill, step_order: parseInt(e.target.value)})} style={{ padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db' }} required />
+                                <input placeholder="Skill Name" value={newSkill.skill_name} onChange={e => setNewSkill({...newSkill, skill_name: e.target.value})} style={{ padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', fontFamily: 'inherit' }} required />
+                                <input type="number" placeholder="Step" value={newSkill.step_order} onChange={e => setNewSkill({...newSkill, step_order: parseInt(e.target.value)})} style={{ padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', fontFamily: 'inherit' }} required />
                             </div>
-                            <input placeholder="Tag (e.g. react-hooks)" value={newSkill.concept_tag} onChange={e => setNewSkill({...newSkill, concept_tag: e.target.value})} style={{ padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db' }} required />
-                            <textarea placeholder="Description" value={newSkill.description} onChange={e => setNewSkill({...newSkill, description: e.target.value})} style={{ padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', minHeight: '100px' }} required />
+                            <input placeholder="Tag (e.g. react-hooks)" value={newSkill.concept_tag} onChange={e => setNewSkill({...newSkill, concept_tag: e.target.value})} style={{ padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', fontFamily: 'inherit' }} required />
+                            <textarea placeholder="Description" value={newSkill.description} onChange={e => setNewSkill({...newSkill, description: e.target.value})} style={{ padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', minHeight: '100px', fontFamily: 'inherit' }} required />
                             <div style={{ display: 'flex', gap: '10px' }}>
-                                <button type="submit" style={{ flex: 1, padding: '15px', background: umBlue, color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold' }}>Save Skill</button>
-                                <button type="button" onClick={() => setShowAddSkill(false)} style={{ padding: '15px 30px', background: '#e5e7eb', border: 'none', borderRadius: '8px' }}>Cancel</button>
+                                <button type="submit" style={{ flex: 1, padding: '15px', background: umBlue, color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Save Skill</button>
+                                <button type="button" onClick={() => setShowAddSkill(false)} style={{ padding: '15px 30px', background: '#e5e7eb', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Cancel</button>
                             </div>
                         </form>
                     </div>
@@ -170,30 +195,36 @@ const ResourceManager = ({ supabase, umBlue, umLightBlue, umGold }) => {
                         <div style={{ marginBottom: '50px' }}>
                             <h4 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '20px' }}>🛡️ Verified Learning Resources</h4>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                {verifiedResources.map(res => (
+                                {verifiedResources.length === 0 ? (
+                                    <p style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '14px' }}>No verified resources attached to this module yet.</p>
+                                ) : verifiedResources.map(res => (
                                     <div key={res.resource_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', border: '1px solid #e5e7eb', borderRadius: '12px', backgroundColor: 'white' }}>
                                         <div>
-                                            <strong>{res.title}</strong>
-                                            <div style={{ fontSize: '13px', color: '#6b7280' }}>{res.provider} • <a href={res.url} target="_blank" rel="noreferrer" style={{ color: umLightBlue }}>Visit ↗</a></div>
+                                            <strong style={{ color: '#1e293b' }}>{res.title}</strong>
+                                            <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '4px' }}>{res.provider} • <a href={res.url} target="_blank" rel="noreferrer" style={{ color: umLightBlue, fontWeight: '600' }}>Visit ↗</a></div>
                                         </div>
-                                        <button onClick={async () => { if (window.confirm("Remove?")) { await fetch(`http://127.0.0.1:5000/api/admin/resources/delete/${res.resource_id}`, { method: 'DELETE' }); fetchVerified(selectedSkill.concept_tag); } }} style={{ color: '#ef4444', border: 'none', background: 'none', fontWeight: 'bold', cursor: 'pointer' }}>Remove</button>
+                                        <button onClick={async () => { if (window.confirm("Remove?")) { await fetch(`http://127.0.0.1:5000/api/admin/resources/delete/${res.resource_id}`, { method: 'DELETE' }); fetchVerified(selectedSkill.concept_tag); } }} style={{ color: '#991b1b', border: 'none', background: 'none', fontWeight: '800', cursor: 'pointer', fontSize: '13px' }}>Remove</button>
                                     </div>
                                 ))}
                             </div>
                         </div>
 
                         <div style={{ backgroundColor: '#f8fafc', padding: '35px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
-                            <h4 style={{ fontWeight: '700', marginBottom: '20px' }}>✨ Add Trusted Resource</h4>
+                            <h4 style={{ fontWeight: '800', marginBottom: '20px', color: '#1e293b' }}>✨ Add Trusted Resource</h4>
                             <form onSubmit={handleAdd} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                <input placeholder="Title" value={newRes.title} onChange={e => setNewRes({...newRes, title: e.target.value})} style={{ padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db' }} required />
-                                <input placeholder="Provider" value={newRes.provider} onChange={e => setNewRes({...newRes, provider: e.target.value})} style={{ padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db' }} required />
-                                <input placeholder="URL" value={newRes.url} onChange={e => setNewRes({...newRes, url: e.target.value})} style={{ gridColumn: 'span 2', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db' }} required />
-                                <button type="submit" style={{ gridColumn: 'span 2', background: umBlue, color: 'white', padding: '15px', borderRadius: '12px', fontWeight: '800' }}>➕ Save to Global Library</button>
+                                <input placeholder="Title" value={newRes.title} onChange={e => setNewRes({...newRes, title: e.target.value})} style={{ padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', fontFamily: 'inherit' }} required />
+                                <input placeholder="Provider" value={newRes.provider} onChange={e => setNewRes({...newRes, provider: e.target.value})} style={{ padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', fontFamily: 'inherit' }} required />
+                                <input placeholder="URL" value={newRes.url} onChange={e => setNewRes({...newRes, url: e.target.value})} style={{ gridColumn: 'span 2', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', fontFamily: 'inherit' }} required />
+                                <button type="submit" style={{ gridColumn: 'span 2', background: umBlue, color: 'white', padding: '15px', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontFamily: 'inherit' }}>➕ Save to Global Library</button>
                             </form>
                         </div>
                     </div>
                 ) : (
-                    <div style={{ textAlign: 'center', padding: '150px 0', color: '#9ca3af' }}><span style={{ fontSize: '64px' }}>📚</span><h3 style={{ fontSize: '20px', fontWeight: '700' }}>Curriculum Curation</h3></div>
+                    <div style={{ textAlign: 'center', padding: '150px 0', color: '#9ca3af' }}>
+                        <span style={{ fontSize: '64px', display: 'block', marginBottom: '20px' }}>📚</span>
+                        <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#475569' }}>Curriculum Curation</h3>
+                        <p style={{ maxWidth: '300px', margin: '0 auto', lineHeight: '1.6' }}>Select a pathway lifecycle and module from the sidebar to manage verified industry resources.</p>
+                    </div>
                 )}
             </div>
         </div>
