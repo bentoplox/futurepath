@@ -11,6 +11,9 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
     const [generatingQuiz, setGeneratingQuiz] = useState(false);
     const [quizDraft, setQuizDraft] = useState(null);
 
+    // ⚡ NEW: Lifecycle Filter State
+    const [lifecycleFilter, setLifecycleFilter] = useState('published');
+
     useEffect(() => { fetchCareerSkills(); }, []);
 
     const fetchCareerSkills = async () => {
@@ -22,7 +25,11 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
     const handlePublish = async (cId) => {
         if (!window.confirm("Make this career LIVE for all students?")) return;
         const res = await fetch(`http://127.0.0.1:5000/api/admin/career/publish/${cId}`, { method: 'POST' });
-        if (res.ok) { alert("Published Successfully!"); fetchCareerSkills(); }
+        if (res.ok) { 
+            alert("Published Successfully!"); 
+            fetchCareerSkills();
+            setLifecycleFilter('published'); // Switch to published view after success
+        }
     };
 
     const fetchQuizzes = async (skillId) => {
@@ -67,8 +74,6 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
         if (res.ok) { alert("Quizzes saved!"); setQuizDraft(null); fetchQuizzes(selectedSkill.skill_id); }
     };
 
-    // ⚡ CLEANUP: Interactive voting buttons removed for Admin. Now handled by Student toggle vote endpoint.
-
     const handleDelete = async (id) => {
         if (!window.confirm("Delete this quiz question forever?")) return;
         await fetch(`http://127.0.0.1:5000/api/admin/quizzes/delete/${id}`, { method: 'DELETE' });
@@ -85,12 +90,55 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
         });
     };
 
+    // Filtered pathways for the sidebar
+    const filteredPathways = careerMap.filter(p => p.status === lifecycleFilter);
+
+    const fontStack = "'Aeonik', 'Plus Jakarta Sans', sans-serif";
+
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '30px', backgroundColor: 'white', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', minHeight: '600px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '30px', backgroundColor: 'white', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', minHeight: '600px', fontFamily: fontStack }}>
             {/* Sidebar */}
             <div style={{ borderRight: '1px solid #f3f4f6', paddingRight: '20px', maxHeight: '70vh', overflowY: 'auto' }}>
-                <h4 style={{ fontSize: '14px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '20px', letterSpacing: '1px', fontWeight: '800' }}>Curriculum Library</h4>
-                {careerMap.map(career => (
+                
+                {/* ⚡ LIFECYCLE TOGGLE */}
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '25px', backgroundColor: '#f1f5f9', padding: '5px', borderRadius: '10px' }}>
+                    <button 
+                        onClick={() => { setLifecycleFilter('published'); setExpandedCareer(null); setSelectedSkill(null); }}
+                        style={{ 
+                            flex: 1, padding: '8px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: '800', cursor: 'pointer',
+                            background: lifecycleFilter === 'published' ? 'white' : 'transparent',
+                            color: lifecycleFilter === 'published' ? '#065f46' : '#64748b',
+                            boxShadow: lifecycleFilter === 'published' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                        }}
+                    >
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }}></div>
+                        Published
+                    </button>
+                    <button 
+                        onClick={() => { setLifecycleFilter('draft'); setExpandedCareer(null); setSelectedSkill(null); }}
+                        style={{ 
+                            flex: 1, padding: '8px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: '800', cursor: 'pointer',
+                            background: lifecycleFilter === 'draft' ? 'white' : 'transparent',
+                            color: lifecycleFilter === 'draft' ? '#9a3412' : '#64748b',
+                            boxShadow: lifecycleFilter === 'draft' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                        }}
+                    >
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></div>
+                        Drafts
+                    </button>
+                </div>
+
+                <h4 style={{ fontSize: '12px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '20px', letterSpacing: '1px', fontWeight: '800' }}>
+                    {lifecycleFilter === 'published' ? '🌐 Live Library' : '📝 Sandbox Drafts'}
+                </h4>
+
+                {filteredPathways.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '13px', fontStyle: 'italic' }}>
+                        No {lifecycleFilter} pathways found.
+                    </div>
+                ) : filteredPathways.map(career => (
                     <div key={career.career_id} style={{ marginBottom: '10px' }}>
                         <div 
                             onClick={() => setExpandedCareer(expandedCareer === career.career_id ? null : career.career_id)}
@@ -102,13 +150,13 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
                             <span>{expandedCareer === career.career_id ? '📂' : '📁'}</span> 
                             <div style={{ flex: 1 }}>
                                 {career.career_name}
-                                {career.status === 'draft' && <span style={{ marginLeft: '8px', fontSize: '10px', background: umGold, color: '#78350f', padding: '2px 6px', borderRadius: '10px', fontWeight: '800' }}>DRAFT</span>}
+                                {career.status === 'draft' && <span style={{ marginLeft: '8px', fontSize: '10px', background: '#fff7ed', color: '#9a3412', padding: '2px 6px', borderRadius: '10px', fontWeight: '800', border: '1px solid #ffedd5' }}>DRAFT</span>}
                             </div>
                         </div>
                         {expandedCareer === career.career_id && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginLeft: '25px', marginTop: '5px', borderLeft: '2px solid #e5e7eb', paddingLeft: '10px' }}>
                                 {career.status === 'draft' && (
-                                    <button onClick={() => handlePublish(career.career_id)} style={{ background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', padding: '10px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '10px', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)' }}>🚀 PUBLISH NOW</button>
+                                    <button onClick={() => handlePublish(career.career_id)} style={{ background: '#065f46', color: 'white', border: 'none', borderRadius: '6px', padding: '10px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '10px', boxShadow: '0 4px 6px rgba(6, 95, 70, 0.2)' }}>🚀 PUBLISH NOW</button>
                                 )}
                                 {career.skills.map(skill => (
                                     <button 
@@ -145,7 +193,7 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
                                     <button onClick={() => handleGenerateQuiz(selectedSkill)} disabled={generatingQuiz} style={{ padding: '12px 20px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px rgba(245, 158, 11, 0.2)' }}>
                                         {generatingQuiz ? '⏳ Drafting...' : '🧠 Auto-Generate with AI'}
                                     </button>
-                                    <button onClick={startAdd} style={{ padding: '12px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)' }}>
+                                    <button onClick={startAdd} style={{ padding: '12px 20px', background: '#065f46', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px rgba(6, 95, 70, 0.2)' }}>
                                         <span>➕</span> Manual Input
                                     </button>
                                 </div>
@@ -159,12 +207,12 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
                                     {quizDraft.map((q, i) => (
                                         <div key={i} style={{ background: 'white', padding: '15px', borderRadius: '10px', border: '1px solid #fed7aa' }}>
                                             <p style={{ fontWeight: 'bold', fontSize: '14px' }}>{q.question}</p>
-                                            <div style={{ fontSize: '12px', color: '#10b981', fontWeight: 'bold' }}>✓ Correct: {q.correct_answer}</div>
+                                            <div style={{ fontSize: '12px', color: '#065f46', fontWeight: 'bold' }}>✓ Correct: {q.correct_answer}</div>
                                         </div>
                                     ))}
                                 </div>
                                 <div style={{ display: 'flex', gap: '10px' }}>
-                                    <button onClick={saveApprovedQuiz} style={{ flex: 1, padding: '12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>✅ Approve & Save</button>
+                                    <button onClick={saveApprovedQuiz} style={{ flex: 1, padding: '12px', background: '#065f46', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>✅ Approve & Save</button>
                                     <button onClick={() => setQuizDraft(null)} style={{ padding: '12px 25px', background: '#e5e7eb', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Discard</button>
                                 </div>
                             </div>
@@ -175,7 +223,7 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
                                     <div>
                                         <label style={{ fontSize: '12px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Question Text</label>
                                         <textarea 
-                                            style={{ width: '100%', padding: '15px', borderRadius: '10px', border: '1px solid #d1d5db', marginTop: '8px', fontSize: '15px', minHeight: '100px', outline: 'none', transition: 'border-color 0.2s' }}
+                                            style={{ width: '100%', padding: '15px', borderRadius: '10px', border: '1px solid #d1d5db', marginTop: '8px', fontSize: '15px', minHeight: '100px', outline: 'none', transition: 'border-color 0.2s', fontFamily: 'inherit' }}
                                             value={editingQuiz.question}
                                             onChange={e => setEditingQuiz({...editingQuiz, question: e.target.value})}
                                             required
@@ -187,7 +235,7 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
                                             <div key={idx}>
                                                 <label style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8' }}>OPTION {idx + 1}</label>
                                                 <input 
-                                                    style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', marginTop: '6px', fontSize: '14px', outline: 'none' }}
+                                                    style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', marginTop: '6px', fontSize: '14px', outline: 'none', fontFamily: 'inherit' }}
                                                     value={opt}
                                                     onChange={e => {
                                                         const newOpts = [...editingQuiz.options];
@@ -204,7 +252,7 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
                                         <div>
                                             <label style={{ fontSize: '12px', fontWeight: '800', color: '#64748b' }}>CORRECT ANSWER</label>
                                             <select 
-                                                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', marginTop: '8px', fontSize: '14px', outline: 'none', backgroundColor: 'white' }}
+                                                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', marginTop: '8px', fontSize: '14px', outline: 'none', backgroundColor: 'white', fontFamily: 'inherit' }}
                                                 value={editingQuiz.correct_answer}
                                                 onChange={e => setEditingQuiz({...editingQuiz, correct_answer: e.target.value})}
                                                 required
@@ -218,7 +266,7 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
                                         <div>
                                             <label style={{ fontSize: '12px', fontWeight: '800', color: '#64748b' }}>DIFFICULTY LEVEL</label>
                                             <select 
-                                                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', marginTop: '8px', fontSize: '14px', outline: 'none', backgroundColor: 'white' }}
+                                                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', marginTop: '8px', fontSize: '14px', outline: 'none', backgroundColor: 'white', fontFamily: 'inherit' }}
                                                 value={editingQuiz.difficulty}
                                                 onChange={e => setEditingQuiz({...editingQuiz, difficulty: e.target.value})}
                                             >
@@ -244,14 +292,14 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
                                                     <span style={{ fontSize: '11px', fontWeight: '900', background: '#eff6ff', color: umLightBlue, padding: '4px 12px', borderRadius: '6px', textTransform: 'uppercase' }}>{q.difficulty}</span>
                                                     {/* ⚡ QUIZ QUALITY VOTE COUNTERS */}
                                                     <div style={{ display: 'flex', gap: '5px', backgroundColor: '#f8fafc', padding: '2px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                                                        <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: 'bold' }}>▲ {q.upvotes || 0}</span>
+                                                        <span style={{ fontSize: '12px', color: '#065f46', fontWeight: 'bold' }}>▲ {q.upvotes || 0}</span>
                                                         <span style={{ fontSize: '12px', color: '#cbd5e1' }}>|</span>
-                                                        <span style={{ fontSize: '12px', color: '#dc2626', fontWeight: 'bold' }}>▼ {q.downvotes || 0}</span>
+                                                        <span style={{ fontSize: '12px', color: '#991b1b', fontWeight: 'bold' }}>▼ {q.downvotes || 0}</span>
                                                     </div>
                                                 </div>
                                                 <div style={{ display: 'flex', gap: '15px' }}>
                                                     <button onClick={() => setEditingQuiz(q)} style={{ color: umLightBlue, background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: '800' }}>Edit</button>
-                                                    <button onClick={() => handleDelete(q.quiz_id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: '800' }}>Delete</button>
+                                                    <button onClick={() => handleDelete(q.quiz_id)} style={{ color: '#991b1b', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: '800' }}>Delete</button>
                                                 </div>
                                             </div>
                                             <p style={{ fontWeight: '700', margin: '0 0 20px 0', fontSize: '18px', color: '#111827', lineHeight: '1.4' }}>{q.question}</p>
@@ -259,9 +307,9 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
                                                 {q.options.map((opt, i) => (
                                                     <div key={i} style={{ 
                                                         padding: '12px 15px', borderRadius: '10px', fontSize: '14px', border: '1px solid #f3f4f6',
-                                                        background: opt === q.correct_answer ? '#dcfce7' : '#f9fafb',
-                                                        color: opt === q.correct_answer ? '#166534' : '#6b7280',
-                                                        borderLeft: opt === q.correct_answer ? `4px solid #10b981` : '1px solid #f3f4f6',
+                                                        background: opt === q.correct_answer ? '#ecfdf5' : '#f9fafb',
+                                                        color: opt === q.correct_answer ? '#065f46' : '#6b7280',
+                                                        borderLeft: opt === q.correct_answer ? `4px solid #065f46` : '1px solid #f3f4f6',
                                                         fontWeight: opt === q.correct_answer ? '700' : '500'
                                                     }}>
                                                         {String.fromCharCode(65 + i)}. {opt} {opt === q.correct_answer && '✓'}
