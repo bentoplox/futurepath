@@ -401,19 +401,19 @@ const AlumniDashboard = ({ user, onLogout }) => {
                     <input placeholder="e.g. Grab, Axiata, TM" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', fontFamily: 'inherit' }} value={careerStats.internship_company} onChange={e => setCareerStats({ ...careerStats, internship_company: e.target.value })} required />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#4b5563', marginBottom: '8px' }}>First Full-Time Employer</label>
-                    <input placeholder="e.g. Maybank, Shopee, Maxis" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', fontFamily: 'inherit' }} value={careerStats.employer_name} onChange={e => setCareerStats({ ...careerStats, employer_name: e.target.value })} required />
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#4b5563', marginBottom: '8px' }}>Internship Role</label>
+                    <input placeholder="e.g. Software Engineer Intern" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', fontFamily: 'inherit' }} value={careerStats.internship_role} onChange={e => setCareerStats({ ...careerStats, internship_role: e.target.value })} required />
                   </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#4b5563', marginBottom: '8px' }}>Starting Job Title</label>
-                    <input placeholder="e.g. Junior Systems Analyst" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', fontFamily: 'inherit' }} value={careerStats.job_title} onChange={e => setCareerStats({ ...careerStats, job_title: e.target.value })} required />
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#4b5563', marginBottom: '8px' }}>First Full-Time Employer</label>
+                    <input placeholder="e.g. Maybank, Shopee, Maxis" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', fontFamily: 'inherit' }} value={careerStats.employer_name} onChange={e => setCareerStats({ ...careerStats, employer_name: e.target.value })} required />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#4b5563', marginBottom: '8px' }}>Years of Experience</label>
-                    <input type="number" placeholder="e.g. 1" min="0" max="3" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', fontFamily: 'inherit' }} value={careerStats.years_xp} onChange={e => setCareerStats({ ...careerStats, years_xp: e.target.value })} required />
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#4b5563', marginBottom: '8px' }}>Starting Job Title</label>
+                    <input placeholder="e.g. Junior Systems Analyst" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', fontFamily: 'inherit' }} value={careerStats.job_title} onChange={e => setCareerStats({ ...careerStats, job_title: e.target.value })} required />
                   </div>
                 </div>
 

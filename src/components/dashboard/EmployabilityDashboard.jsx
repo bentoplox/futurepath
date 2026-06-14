@@ -48,11 +48,12 @@ const EmployabilityDashboard = () => {
   if (loading) return <div style={{ textAlign: 'center', padding: '100px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", color: '#4c2882' }}><h3>Loading Career Intelligence...</h3></div>;
   
   const currentSKPGData = dbData.find(d => d.program === selectedSKPGProgram) || dbData[0] || {};
-  const currentMarket = (marketData && marketData[selectedAlumniProgram?.toUpperCase()]) || { top_employers: [], top_roles: [], top_internships: [] };
+  const currentMarket = (marketData && marketData[selectedAlumniProgram?.toUpperCase()]) || { top_employers: [], top_roles: [], top_internships: [], top_intern_roles: [] };
 
   const safeTopEmployers = Array.isArray(currentMarket.top_employers) ? currentMarket.top_employers : [];
   const safeTopRoles = Array.isArray(currentMarket.top_roles) ? currentMarket.top_roles : [];
   const safeTopInternships = Array.isArray(currentMarket.top_internships) ? currentMarket.top_internships : [];
+  const safeTopInternRoles = Array.isArray(currentMarket.top_intern_roles) ? currentMarket.top_intern_roles : [];
 
   const chartData = [
     { name: 'Employed', value: currentSKPGData.employed_pct || 0, color: '#4c2882' }, 
@@ -94,7 +95,7 @@ const EmployabilityDashboard = () => {
         </div>
 
         {/* TELEMETRY CHARTS GRID */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px', marginBottom: '56px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '56px' }}>
             {/* Top Employers */}
             <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '28px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
                 <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#475569', marginBottom: '20px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Top Companies Hiring Fresh Grads</h3>
@@ -146,6 +147,22 @@ const EmployabilityDashboard = () => {
                             </div>
                         </div>
                     )) : <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontSize: '14px' }}>No role benchmarks found for this major yet.</div>}
+                </div>
+            </div>
+
+            {/* Most Common Internship Roles */}
+            <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '28px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#475569', marginBottom: '20px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Most Common Internship Roles</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {safeTopInternRoles.length > 0 ? safeTopInternRoles.map((role, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <span style={{ background: '#0ea5e9', color: 'white', width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifycontent: 'center', fontSize: '11px', fontWeight: 'bold', justifyContent: 'center' }}>{i+1}</span>
+                                <span style={{ fontWeight: '700', color: '#1e293b', fontSize: '14px' }}>{role.name}</span>
+                            </div>
+                            <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold' }}>{role.count} Grads</span>
+                        </div>
+                    )) : <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontSize: '14px' }}>No internship role benchmarks found yet.</div>}
                 </div>
             </div>
         </div>

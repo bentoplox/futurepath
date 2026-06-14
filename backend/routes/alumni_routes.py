@@ -38,25 +38,25 @@ def update_alumni_stats():
         payload = {
             "user_id": data['user_id'],
             "salary": data.get('salary'),
-            "years_xp": data.get('years_xp'),
             "employer_name": data.get('employer_name'),
             "job_title": data.get('job_title'),
             "internship_company": data.get('internship_company'),
+            "internship_role": data.get('internship_role'),
             "is_public": True,
             "updated_at": "now()"
         }
         supabase.table('alumni_career_stats').upsert(payload).execute()
-        
+
         # 2. Sync Identity presentation data inside the Users table
         user_update = {}
         if data.get('programme'): user_update["programme"] = data['programme']
         if data.get('name'): user_update["name"] = data['name']
         if 'show_workplace' in data: user_update["show_workplace"] = data['show_workplace']
         if 'current_role' in data: user_update["current_role"] = data['current_role']
-        
+
         if user_update:
             supabase.table('users').update(user_update).eq('user_id', data['user_id']).execute()
-            
+
         return jsonify({"success": True, "message": "Profile successfully updated!"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -72,30 +72,28 @@ def get_graduate_stats():
 
 @alumni_bp.route('/api/market/insights', methods=['GET'])
 def get_market_insights():
-    """Aggregates real early-career alumni data (<=3 years), segmented by Programme"""
+    """Aggregates real early-career alumni data, segmented by Programme"""
     try:
         # Join with users to get their 'programme' (Department)
         res = supabase.table('alumni_career_stats').select('*, users(programme)').eq('is_public', True).execute()
         raw_data = res.data
 
-        # ⚡ FILTER: Only use Early Career Data (0-3 years) for accurate entry metrics
-        early_career_data = [d for d in raw_data if d.get('years_xp') is not None and d['years_xp'] <= 3]
-
         # ⚡ UPDATED: Initializing the explicit English master bucket
         program_insights = {
-            "OVERALL FACULTY (FSKTM)": {"employers": {}, "internships": {}, "roles": {}}
+            "OVERALL FACULTY (FSKTM)": {"employers": {}, "internships": {}, "roles": {}, "intern_roles": {}}
         }
 
-        for entry in early_career_data:
+        for entry in raw_data:
             raw_prog = entry.get('users', {}).get('programme', 'General')
             prog = raw_prog.upper() if raw_prog else 'GENERAL'
-            
+
             if prog not in program_insights:
-                program_insights[prog] = {"employers": {}, "internships": {}, "roles": {}}
-            
+                program_insights[prog] = {"employers": {}, "internships": {}, "roles": {}, "intern_roles": {}}
+
             emp = entry.get('employer_name')
             intern = entry.get('internship_company')
             role = entry.get('job_title')
+            intern_role = entry.get('internship_role')
             sal = entry.get('salary')
 
             # Helper function to inject data into a specific bucket
@@ -113,9 +111,12 @@ def get_market_insights():
                     target["roles"][role]["count"] += 1
                     if sal: target["roles"][role]["total_sal"] += float(sal)
 
+                if intern_role:
+                    target["intern_roles"][intern_role] = target["intern_roles"].get(intern_role, 0) + 1
+
             # 1. Add metrics to the specific undergraduate department array
             add_to_bucket(program_insights[prog])
-            
+
             # 2. Simultaneously add metrics to the combined English master bucket
             add_to_bucket(program_insights["OVERALL FACULTY (FSKTM)"])
 
@@ -137,10 +138,16 @@ def get_market_insights():
                 for k, v in data["internships"].items()
             ], key=lambda x: x['count'], reverse=True)[:5]
 
+            top_intern_roles = sorted([
+                {"name": k, "count": v} 
+                for k, v in data["intern_roles"].items()
+            ], key=lambda x: x['count'], reverse=True)[:5]
+
             formatted_insights[p] = {
                 "top_employers": top_employers,
                 "top_roles": top_roles,
-                "top_internships": top_internships
+                "top_internships": top_internships,
+                "top_intern_roles": top_intern_roles
             }
 
         return jsonify({
