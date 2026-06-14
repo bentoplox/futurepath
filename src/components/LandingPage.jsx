@@ -1,192 +1,157 @@
 // ============================================================================
 // FILE: src/components/LandingPage.jsx
-// PURPOSE: Landing Page with Premium UM Blue & FuturePath Purple Blended UI
+// PURPOSE: Professional Landing Page with Navbar, Centered Cards & FOMO Copy
 // ============================================================================
 
 import React from 'react';
-import { styles } from '../styles/styles';
 import futurePathLogo from '../assets/futurepath_logo_traced.svg';
 
 const LandingPage = ({ onLoginClick, onRegisterClick }) => {
-  
   // Brand Colors
   const umBlue = '#1e3a8a';
   const fpPurple = '#4c2882';
   const umGold = '#fbbf24';
 
   return (
-    <div style={{...styles.appContainer, backgroundColor: '#f9f9f9', display: 'flex', flexDirection: 'column', minHeight: '100vh', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif"}}>
+    <div style={{ backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', minHeight: '100vh', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
       
-      {/* --- HERO WRAPPER (Seamless Gradient) --- */}
+      {/* --- HERO SECTION --- */}
       <div style={{ 
           background: `linear-gradient(135deg, ${umBlue} 0%, ${fpPurple} 100%)`, 
-          borderBottomLeftRadius: '30px', 
-          borderBottomRightRadius: '30px',
-          paddingBottom: '80px',
+          padding: '30px 40px 100px 40px',
+          textAlign: 'center',
+          color: 'white',
           position: 'relative',
           overflow: 'hidden'
       }}>
-          
         {/* Decorative Background Elements */}
-        <div style={{ position: 'absolute', top: '-100px', right: '-50px', width: '400px', height: '400px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '50%' }}></div>
-        <div style={{ position: 'absolute', bottom: '-50px', left: '-50px', width: '200px', height: '200px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '50%' }}></div>
+        <div style={{ position: 'absolute', top: '-10%', left: '-5%', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)', borderRadius: '50%' }}></div>
+        <div style={{ position: 'absolute', bottom: '-20%', right: '-10%', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(251,191,36,0.1) 0%, transparent 70%)', borderRadius: '50%' }}></div>
 
-        {/* --- NAVBAR (Glassmorphism over Gradient) --- */}
-        <nav style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '20px 40px',
-          position: 'relative',
-          zIndex: 10
-        }}>
-          {/* Custom SVG Logo */}
+        {/* ⚡ RESTORED NAVBAR WITH LOGO (Filter Removed) ⚡ */}
+        <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 10, marginBottom: '60px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <img 
               src={futurePathLogo} 
               alt="FuturePath Logo" 
-              style={{ width: '32px', height: '32px' }} 
+              style={{ width: '32px', height: 'auto' }} 
             />
             <h1 style={{ margin: 0, fontSize: '22px', fontWeight: '800', letterSpacing: '0.5px' }}>
               <span style={{ color: 'white' }}>Future</span>
               <span style={{ color: umGold }}>Path</span>
             </h1>
           </div>
-          <div>
+        </nav>
+
+        <div style={{ maxWidth: '800px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
+          
+          {/* Beautiful White Container for the Local SVG Logo (Hero Center) */}
+          <div style={{ 
+              width: '80px', height: '80px', backgroundColor: 'white', borderRadius: '20px', 
+              display: 'flex', alignItems: 'center', justifyContent: 'center', 
+              margin: '0 auto 30px auto', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)'
+          }}>
+            <img src={futurePathLogo} alt="FuturePath Logo" style={{ height: '45px', width: 'auto' }} />
+          </div>
+          
+          <h1 style={{ fontSize: '48px', fontWeight: '800', marginBottom: '20px', lineHeight: '1.2', letterSpacing: '-0.5px' }}>
+            Bridge the Gap Between <span style={{ color: umGold }}>Academia</span> and <span style={{ color: umGold }}>Industry</span>
+          </h1>
+          
+          <p style={{ fontSize: '18px', color: '#e0e7ff', marginBottom: '40px', lineHeight: '1.6', maxWidth: '600px', margin: '0 auto 40px auto' }}>
+            FuturePath is an AI-powered career navigator designed to equip university students with industry-verified skills and connect them directly with alumni mentors.
+          </p>
+
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '20px' }}>
             <button 
-              onClick={onLoginClick}
-              style={{
-                  backgroundColor: 'rgba(255,255,255,0.15)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', 
-                  padding: '10px 24px', borderRadius: '30px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', transition: 'all 0.2s', backdropFilter: 'blur(10px)'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.25)'}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)'}
+              onClick={() => onRegisterClick('student')} 
+              style={{ backgroundColor: umGold, color: '#111827', padding: '16px 32px', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', border: 'none', cursor: 'pointer', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', transition: 'transform 0.2s' }}
+              onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+              Get Started for Free
+            </button>
+            <button 
+              onClick={onLoginClick} 
+              style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', padding: '16px 32px', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', border: '1px solid rgba(255,255,255,0.3)', cursor: 'pointer', transition: 'background 0.2s' }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'}
             >
               Log In
             </button>
           </div>
-        </nav>
-
-        {/* --- HERO SECTION --- */}
-        <header style={{ textAlign: 'center', padding: '60px 20px', position: 'relative', zIndex: 10 }}>
-          <span style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: umGold, border: `1px solid rgba(251, 191, 36, 0.3)`, padding: '6px 16px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px', display: 'inline-block', marginBottom: '25px', backdropFilter: 'blur(5px)' }}>
-            UNIVERSITI MALAYA • FSKTM
-          </span>
-          <h1 style={{ fontSize: '48px', marginBottom: '20px', color: 'white', fontWeight: '800', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
-            Shape Your <span style={{color: umGold}}>Future Career</span>
-          </h1>
-          <p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.9)', maxWidth: '700px', margin: '0 auto 50px', lineHeight: '1.6' }}>
-            FuturePath creates personalized learning roadmaps to bridge the gap between your university degree and your dream job in the tech industry.
-          </p>
-          
-          {/* --- DUAL SIGN UP BUTTONS --- */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '30px', flexWrap: 'wrap' }}>
-              
-              {/* Student Card */}
-              <div style={{
-                  backgroundColor: 'white', padding: '35px', borderRadius: '16px',
-                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)',
-                  width: '320px', textAlign: 'center', borderTop: `6px solid ${fpPurple}`
-              }}>
-                  <div style={{fontSize: '40px', marginBottom: '15px'}}>🎓</div>
-                  <h3 style={{marginBottom: '10px', color: '#111827', fontSize:'22px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif"}}>I am a Student</h3>
-                  <p style={{color: '#6B7280', fontSize: '15px', marginBottom: '25px', lineHeight: '1.5'}}>
-                      Get personalized roadmaps, track skills, and find resources to ace your career.
-                  </p>
-                  <button 
-                      onClick={() => onRegisterClick('student')} 
-                      style={{...styles.primaryButton, backgroundColor: fpPurple, width: '100%', fontSize: '16px', padding: '12px'}}
-                  >
-                      Sign Up as Student
-                  </button>
-              </div>
-
-              {/* Alumni Card */}
-              <div style={{
-                  backgroundColor: 'white', padding: '35px', borderRadius: '16px',
-                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)',
-                  width: '320px', textAlign: 'center', borderTop: `6px solid ${umBlue}`
-              }}>
-                  <div style={{fontSize: '40px', marginBottom: '15px'}}>💼</div>
-                  <h3 style={{marginBottom: '10px', color: '#111827', fontSize:'22px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif"}}>I am an Alumni</h3>
-                  <p style={{color: '#6B7280', fontSize: '15px', marginBottom: '25px', lineHeight: '1.5'}}>
-                      Share jobs, mentor juniors, and give back to the FSKTM community.
-                  </p>
-                  <button 
-                      onClick={() => onRegisterClick('alumni')} 
-                      style={{...styles.primaryButton, backgroundColor: umBlue, width: '100%', fontSize: '16px', padding: '12px'}}
-                  >
-                      Sign Up as Alumni
-                  </button>
-              </div>
-          </div>
-        </header>
+        </div>
       </div>
 
-      {/* --- FEATURES GRID (HORIZONTAL LAYOUT) --- */}
-      <section style={{ padding: '80px 40px', maxWidth: '1400px', margin: '0 auto' }}>
-        <h2 style={{ textAlign: 'center', fontSize: '32px', marginBottom: '60px', color: '#111827', fontWeight: '800', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
-          System Capabilities
-        </h2>
-
-        <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-            gap: '30px',
-            alignItems: 'stretch' 
-        }}>
+      {/* --- FOMO-DRIVEN SYSTEM CAPABILITIES --- */}
+      <div style={{ maxWidth: '1200px', margin: '-40px auto 60px auto', padding: '0 20px', position: 'relative', zIndex: 2 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px' }}>
           
-          {/* FEATURE 1: ROADMAP (FuturePath Purple Theme) */}
-          <div style={{...styles.card, borderTop: `5px solid ${fpPurple}`, padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)'}}>
-            <div style={{ fontSize: '32px', marginBottom: '20px', backgroundColor:'#f3e8ff', width:'60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius:'12px' }}>🗺️</div>
-            <h3 style={{ color: '#111827', fontSize: '20px', marginBottom: '15px', fontWeight: '700', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
-                Personalized Learning Roadmap
-            </h3>
-            <ul style={{ color: '#4B5563', paddingLeft: '20px', lineHeight: '1.6', fontSize:'15px', margin: 0 }}>
-              <li style={{marginBottom: '8px'}}>Automated skill sequencing tailored to your dream career.</li>
-              <li style={{marginBottom: '8px'}}>Access to curated free and affordable learning resources.</li>
-              <li style={{marginBottom: '8px'}}>Visual progress tracking with milestone achievements.</li>
-              <li>Skill verification via interactive quizzes.</li>
-            </ul>
+          <div style={{ backgroundColor: 'white', padding: '40px 30px', borderRadius: '20px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9', textAlign: 'center' }}>
+            <div style={{ fontSize: '32px', backgroundColor: '#eff6ff', color: umBlue, width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '16px', margin: '0 auto 20px auto' }}>🧭</div>
+            <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', marginBottom: '15px' }}>Stop Guessing Your Career Path</h3>
+            <p style={{ color: '#475569', lineHeight: '1.6', fontSize: '15px', margin: 0 }}>
+              While others blindly apply to jobs with generic resumes, our AI maps out the exact, verified skills top tech companies are actively hiring for right now. Don't get left behind—earn the Capstone certifications that guarantee you stand out.
+            </p>
           </div>
 
-          {/* FEATURE 2: EMPLOYABILITY (UM Blue Theme) */}
-          <div style={{...styles.card, borderTop: `5px solid ${umBlue}`, padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)'}}>
-            <div style={{ fontSize: '32px', marginBottom: '20px', backgroundColor:'#eff6ff', width:'60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius:'12px' }}>📊</div>
-            <h3 style={{ color: '#111827', fontSize: '20px', marginBottom: '15px', fontWeight: '700', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
-                Graduate Employability Intelligence
-            </h3>
-            <ul style={{ color: '#4B5563', paddingLeft: '20px', lineHeight: '1.6', fontSize:'15px', margin: 0 }}>
-              <li style={{marginBottom: '8px'}}>Track graduate employment trends and outcomes.</li>
-              <li style={{marginBottom: '8px'}}>Analyze top hiring employers and recruitment distribution.</li>
-              <li style={{marginBottom: '8px'}}>Gain insights into in-demand job roles and industry alignment.</li>
-              <li>Data-driven decision making for career planning.</li>
-            </ul>
+          <div style={{ backgroundColor: 'white', padding: '40px 30px', borderRadius: '20px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9', textAlign: 'center' }}>
+            <div style={{ fontSize: '32px', backgroundColor: '#f3e8ff', color: fpPurple, width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '16px', margin: '0 auto 20px auto' }}>💎</div>
+            <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', marginBottom: '15px' }}>Never Negotiate Blind Again</h3>
+            <p style={{ color: '#475569', lineHeight: '1.6', fontSize: '15px', margin: 0 }}>
+              Stop relying on rumors. Access live, confidential data on exact starting salaries, top hiring employers, and department-specific benchmarks for your exact major. Know your worth and secure the best offers while others settle for less.
+            </p>
           </div>
 
-          {/* FEATURE 3: ALUMNI HUB (UM Gold Theme) */}
-          <div style={{...styles.card, borderTop: `5px solid ${umGold}`, padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)'}}>
-            <div style={{ fontSize: '32px', marginBottom: '20px', backgroundColor:'#fef3c7', width:'60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius:'12px' }}>🤝</div>
-            <h3 style={{ color: '#111827', fontSize: '20px', marginBottom: '15px', fontWeight: '700', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
-                Alumni & Mentorship Network
-            </h3>
-            <ul style={{ color: '#4B5563', paddingLeft: '20px', lineHeight: '1.6', fontSize:'15px', margin: 0 }}>
-              <li style={{marginBottom: '8px'}}>Access verified job and internship opportunities from alumni.</li>
-              <li style={{marginBottom: '8px'}}>Engage in structured mentorship and knowledge sharing.</li>
-              <li style={{marginBottom: '8px'}}>Direct networking with successful industry professionals.</li>
-              <li>Community-driven support for career advancement.</li>
-            </ul>
+          <div style={{ backgroundColor: 'white', padding: '40px 30px', borderRadius: '20px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9', textAlign: 'center' }}>
+            <div style={{ fontSize: '32px', backgroundColor: '#fef3c7', color: umGold, width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '16px', margin: '0 auto 20px auto' }}>🗝️</div>
+            <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', marginBottom: '15px' }}>Unlock the Hidden Job Market</h3>
+            <p style={{ color: '#475569', lineHeight: '1.6', fontSize: '15px', margin: 0 }}>
+              Access exclusive, unlisted internships and roles posted directly by successful alumni before they hit public boards. For alumni: this is your chance to build a powerful legacy and recruit top-tier talent before your competitors do.
+            </p>
           </div>
 
         </div>
-      </section>
+      </div>
+
+      {/* --- CALL TO ACTION (Side-by-Side) --- */}
+      <div style={{ maxWidth: '800px', margin: '0 auto 80px auto', padding: '0 20px', textAlign: 'center' }}>
+        <h2 style={{ fontSize: '32px', fontWeight: '800', color: '#0f172a', marginBottom: '40px' }}>Choose Your Path</h2>
+        
+        {/* ⚡ Used Flexbox to force them side-by-side ⚡ */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' }}>
+          
+          <div 
+            onClick={() => onRegisterClick('student')}
+            style={{ flex: '1', minWidth: '280px', maxWidth: '380px', backgroundColor: 'white', padding: '30px', borderRadius: '16px', border: '2px solid #e2e8f0', cursor: 'pointer', transition: 'all 0.2s' }}
+            onMouseOver={(e) => e.currentTarget.style.borderColor = umBlue}
+            onMouseOut={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
+          >
+            <div style={{ fontSize: '40px', marginBottom: '15px' }}>🎓</div>
+            <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', margin: '0 0 10px 0' }}>I am a Student</h3>
+            <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>Gain the unfair advantage to secure your career.</p>
+          </div>
+
+          <div 
+            onClick={() => onRegisterClick('alumni')}
+            style={{ flex: '1', minWidth: '280px', maxWidth: '380px', backgroundColor: 'white', padding: '30px', borderRadius: '16px', border: '2px solid #e2e8f0', cursor: 'pointer', transition: 'all 0.2s' }}
+            onMouseOver={(e) => e.currentTarget.style.borderColor = fpPurple}
+            onMouseOut={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
+          >
+            <div style={{ fontSize: '40px', marginBottom: '15px' }}>💼</div>
+            <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', margin: '0 0 10px 0' }}>I am an Alumni</h3>
+            <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>Recruit top talent and mentor the next generation.</p>
+          </div>
+
+        </div>
+      </div>
 
       {/* --- FOOTER --- */}
-      <footer style={{ textAlign: 'center', padding: '40px', borderTop: '1px solid #E5E7EB', backgroundColor: 'white', color: '#9CA3AF', marginTop: 'auto' }}>
-        <p style={{ margin: 0 }}>&copy; 2026 FuturePath. Final Year Project for FSKTM UM. All Rights Reserved.</p>
+      <footer style={{ textAlign: 'center', padding: '40px', borderTop: '1px solid #e2e8f0', backgroundColor: 'white', color: '#94a3b8', marginTop: 'auto' }}>
+        <p style={{ margin: 0, fontSize: '14px', fontWeight: '500' }}>© {new Date().getFullYear()} FuturePath. Faculty of Computer Science & Information Technology, UM.</p>
       </footer>
     </div>
   );
 };
 
-export default LandingPage;
+export default LandingPage; 
