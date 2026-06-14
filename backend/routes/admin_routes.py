@@ -350,6 +350,21 @@ def get_curation_logs():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@admin_bp.route('/api/admin/moderate-post', methods=['POST'])
+def moderate_post():
+    data = request.json
+    post_id = data.get('post_id')
+    new_status = data.get('status') # 'approved' or 'rejected'
+    
+    if not post_id or not new_status:
+        return jsonify({"success": False, "error": "Missing post_id or status"}), 400
+        
+    try:
+        supabase.table('alumni_posts').update({"status": new_status}).eq('id', post_id).execute()
+        return jsonify({"success": True, "message": f"Post {new_status} successfully"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @admin_bp.route('/api/admin/career/publish/<int:career_id>', methods=['POST'])
 def publish_pathway(career_id):
     try:

@@ -66,7 +66,7 @@ const AdminDashboard = ({ user, onLogout }) => {
         // ⚡ RESTORED: Direct Supabase query for pending moderation queue
         const { data: pData, error: pError } = await supabase
             .from('alumni_posts')
-            .select('*, users(name, role, show_workplace, current_role)')
+            .select('*, users!fk_alumni_posts_author(name, role, show_workplace, current_role)')
             .eq('status', 'pending')
             .in('post_type', ['job', 'internship'])
             .order('created_at', { ascending: false });

@@ -12,9 +12,12 @@ const AlumniDashboard = ({ user, onLogout }) => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // NEW: Search state
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Consolidated isolated data vectors 
   const [careerStats, setCareerStats] = useState({
-    name: user?.name || '', 
+    name: user?.name || '',
     current_role: '',
     programme: '',
     internship_company: '',
@@ -25,7 +28,7 @@ const AlumniDashboard = ({ user, onLogout }) => {
     show_workplace: false,
     is_public: true
   });
-  
+
   const [loadingStats, setLoadingStats] = useState(false);
   const [isDataSaved, setIsDataSaved] = useState(false);
   const [isSettingsSaved, setIsSettingsSaved] = useState(false);
@@ -65,14 +68,13 @@ const AlumniDashboard = ({ user, onLogout }) => {
     }
   }, [activeUserId]);
 
-  // Sync state vectors with backend databases
   const fetchCareerStats = async () => {
     if (!activeUserId) return;
     setLoadingStats(true);
     try {
       const res = await fetch(`http://127.0.0.1:5000/api/alumni/profile/stats?user_id=${activeUserId}`);
       const data = await res.json();
-      
+
       if (data.success) {
         if (data.stats) {
           const userObj = data.stats.users;
@@ -104,10 +106,10 @@ const AlumniDashboard = ({ user, onLogout }) => {
           }));
         }
       }
-    } catch (err) { 
-      console.error("Error fetching stats:", err); 
-    } finally { 
-      setLoadingStats(false); 
+    } catch (err) {
+      console.error("Error fetching stats:", err);
+    } finally {
+      setLoadingStats(false);
     }
   };
 
@@ -122,8 +124,8 @@ const AlumniDashboard = ({ user, onLogout }) => {
       if (res.ok) {
         setIsDataSaved(true);
         alert("Early-career metrics updated successfully!");
-        fetchCareerStats(); 
-        fetchPosts(); 
+        fetchCareerStats();
+        fetchPosts();
       }
     } catch (err) { console.error(err); }
   };
@@ -139,8 +141,8 @@ const AlumniDashboard = ({ user, onLogout }) => {
       if (res.ok) {
         setIsSettingsSaved(true);
         alert("Profile display preferences updated successfully!");
-        fetchCareerStats(); 
-        fetchPosts(); 
+        fetchCareerStats();
+        fetchPosts();
       }
     } catch (err) { console.error(err); }
   };
@@ -155,13 +157,19 @@ const AlumniDashboard = ({ user, onLogout }) => {
 
   const fetchPosts = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('alumni_posts')
-      .select('*, users(name, show_workplace, current_role)')
-      .order('created_at', { ascending: false });
+    try {
+      // ⚡ Rerouted to Flask to fetch all personal posts (pending + live)
+      const res = await fetch('http://127.0.0.1:5000/api/discussion/all');
+      const data = await res.json();
 
-    if (error) console.error(error);
-    else setPosts(data || []);
+      if (data.success) {
+        setPosts(data.posts || []);
+      } else {
+        console.error("Error fetching posts:", data.error);
+      }
+    } catch (err) {
+      console.error("Fetch failed:", err);
+    }
     setLoading(false);
   };
 
@@ -169,6 +177,25 @@ const AlumniDashboard = ({ user, onLogout }) => {
     setExpandedPostId(expandedPostId === postId ? null : postId);
   };
 
+  // ⚡ FIXED: Added Delete Function
+  const handleDeletePost = async (postId) => {
+    if (!window.confirm("Are you sure you want to permanently delete this post?")) return;
+
+    try {
+      const res = await fetch(`http://127.0.0.1:5000/api/discussion/delete/${postId}?user_id=${activeUserId}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setPosts(posts.filter(p => p.id !== postId));
+      } else {
+        alert("Error deleting post: " + data.error);
+      }
+    } catch (err) { console.error("Delete failed", err); }
+  };
+
+  // ⚡ FIXED: Added search filtering
   const filteredPosts = posts.filter(post => {
     const isTabMatch = activeTab === 'jobs'
       ? (post.post_type === 'job' || post.post_type === 'internship')
@@ -176,11 +203,15 @@ const AlumniDashboard = ({ user, onLogout }) => {
 
     if (!isTabMatch) return false;
     if (activeTab === 'mentorship' && selectedCategory !== 'All') {
-      return post.post_type === selectedCategory;
+      if (post.post_type !== selectedCategory) return false;
     }
-    return true;
+
+    const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.content.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
   });
 
+  // ⚡ FIXED: Submitting to Flask to handle pending vs approved logic
   const handlePostSubmit = async (e) => {
     e.preventDefault();
     if (!activeUserId) return alert('You must be logged in');
@@ -210,27 +241,40 @@ const AlumniDashboard = ({ user, onLogout }) => {
       finalImageUrl = publicUrl;
     }
 
-    const { error } = await supabase.from('alumni_posts').insert([{
+    const payload = {
       author_id: activeUserId,
       title: newPost.title,
       content: newPost.content,
       post_type: newPost.type,
       company_name: ['mentorship', 'resume_review', 'interview_prep'].includes(newPost.type) ? null : newPost.company_name,
       application_link: newPost.application_link,
-      image_url: finalImageUrl,
-      status: 'pending'
-    }]);
+      image_url: finalImageUrl
+      // Status is automatically handled by the Flask backend now!
+    };
 
-    setUploading(false);
+    try {
+      const res = await fetch('http://127.0.0.1:5000/api/discussion/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
 
-    if (error) {
-      alert("Error: " + error.message);
-    } else {
-      alert('Post submitted! Pending Admin approval.');
-      setNewPost({ title: '', content: '', type: activeTab === 'jobs' ? 'job' : 'mentorship', company_name: '', application_link: '' });
-      setPosterFile(null);
-      fetchPosts();
+      if (data.success) {
+        alert(payload.post_type === 'job' || payload.post_type === 'internship'
+          ? 'Post submitted! Pending Admin approval.'
+          : 'Discussion posted successfully!');
+        setNewPost({ title: '', content: '', type: activeTab === 'jobs' ? 'job' : 'mentorship', company_name: '', application_link: '' });
+        setPosterFile(null);
+        fetchPosts(); // Refresh feeds instantly
+      } else {
+        alert("Error: " + data.error);
+      }
+    } catch (err) {
+      alert("Error submitting post. Ensure backend is running.");
+      console.error(err);
     }
+    setUploading(false);
   };
 
   const getTypeColor = (type) => {
@@ -281,10 +325,9 @@ const AlumniDashboard = ({ user, onLogout }) => {
             ALUMNI PORTAL — FSKTM UM
           </span>
           <h1 style={{ fontSize: '42px', margin: '0 0 10px 0', fontWeight: '700', lineHeight: '1.2' }}>
-            Welcome back,<br /> 
+            Welcome back,<br />
             <span style={{ color: '#fcd34d' }}>{careerStats.name || 'Alumni'}</span>
-            
-            {/* HERO PROFILE DESCRIPTION ATTACHMENT */}
+
             {careerStats.show_workplace && careerStats.current_role && (
               <span style={{ fontSize: '18px', color: '#fcd34d', display: 'block', marginTop: '10px', fontWeight: '500', opacity: 0.95, letterSpacing: '0.5px' }}>
                 - {careerStats.current_role}
@@ -292,18 +335,18 @@ const AlumniDashboard = ({ user, onLogout }) => {
             )}
           </h1>
 
-          {/* CONTROL TABS INTERFACE ELEMENT MAP */}
+          {/* CONTROL TABS INTERFACE */}
           <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginTop: '30px' }}>
             {[
               { id: 'jobs', label: '💼 Job Board' },
               { id: 'mentorship', label: '💬 Mentorship Hub' },
               { id: 'stats', label: '📊 Fresh Graduate Data' },
-              { id: 'review', label: '🧠 Curriculum Review' }, // ⚡ NEW TAB
+              { id: 'review', label: '🧠 Curriculum Review' },
               { id: 'settings', label: '⚙️ Profile Settings' }
             ].map(tab => (
               <button
                 key={tab.id}
-                onClick={() => { setActiveTab(tab.id); setExpandedPostId(null); }}
+                onClick={() => { setActiveTab(tab.id); setExpandedPostId(null); setSearchQuery(''); }}
                 style={{
                   padding: '10px 24px', borderRadius: '30px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', border: 'none', transition: 'all 0.2s',
                   backgroundColor: activeTab === tab.id ? 'white' : 'rgba(255,255,255,0.15)',
@@ -322,12 +365,12 @@ const AlumniDashboard = ({ user, onLogout }) => {
 
         {/* ⚡ TAB: CURRICULUM REVIEW (ALUMNI CROWDSOURCING) */}
         {activeTab === 'review' && (
-            <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-                <AlumniCurriculumReview user={user} />
-            </div>
+          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <AlumniCurriculumReview user={user} />
+          </div>
         )}
 
-        {/* ⚡ TAB 3: FRESH GRADUATE ANALYTICS DISCLOSURE PANEL */}
+        {/* ⚡ TAB: FRESH GRADUATE ANALYTICS DISCLOSURE PANEL */}
         {activeTab === 'stats' && (
           <div style={{ maxWidth: '800px', margin: '0 auto', backgroundColor: 'white', borderRadius: '20px', padding: '40px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', borderTop: '6px solid #4c2882' }}>
             <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '10px' }}>Faculty Analytics Disclosure</h2>
@@ -390,7 +433,7 @@ const AlumniDashboard = ({ user, onLogout }) => {
           </div>
         )}
 
-        {/* ⚡ TAB 4: PROFILE VISIBILITY SETTINGS */}
+        {/* ⚡ TAB: PROFILE VISIBILITY SETTINGS */}
         {activeTab === 'settings' && (
           <div style={{ maxWidth: '800px', margin: '0 auto', backgroundColor: 'white', borderRadius: '20px', padding: '40px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', borderTop: '6px solid #fcd34d' }}>
             <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '10px' }}>Profile Settings</h2>
@@ -409,18 +452,17 @@ const AlumniDashboard = ({ user, onLogout }) => {
                 <input placeholder="e.g. AI Engineer @ RHB" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', fontFamily: 'inherit' }} value={careerStats.current_role} onChange={e => setCareerStats({ ...careerStats, current_role: e.target.value })} />
               </div>
 
-              {/* ACTION SYSTEM TOGGLE SWITCH */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                 <div>
                   <strong style={{ display: 'block', fontSize: '14px', color: '#1e293b' }}>Show Workplace Status to Students</strong>
                   <span style={{ fontSize: '12px', color: '#64748b' }}>Appends your current role info badge alongside your name on posts and threads.</span>
                 </div>
                 <label style={{ position: 'relative', display: 'inline-block', width: '46px', height: '24px' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={careerStats.show_workplace} 
+                  <input
+                    type="checkbox"
+                    checked={careerStats.show_workplace}
                     onChange={e => setCareerStats({ ...careerStats, show_workplace: e.target.checked })}
-                    style={{ opacity: 0, width: 0, height: 0 }} 
+                    style={{ opacity: 0, width: 0, height: 0 }}
                   />
                   <span style={{ position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: careerStats.show_workplace ? '#10b981' : '#cbd5e1', transition: '0.3s', borderRadius: '24px' }}>
                     <span style={{ position: 'absolute', content: '""', height: '18px', width: '18px', left: '3px', bottom: '3px', backgroundColor: 'white', transition: '0.3s', borderRadius: '50%', transform: careerStats.show_workplace ? 'translateX(22px)' : 'translateX(0)' }} />
@@ -442,10 +484,10 @@ const AlumniDashboard = ({ user, onLogout }) => {
         {(activeTab === 'jobs' || activeTab === 'mentorship') && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px', alignItems: 'start' }}>
             <div style={{ flex: 2, minWidth: '60%' }}>
-              
+
               {/* Contextual Category Navigation Header */}
               {activeTab === 'mentorship' && (
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '24px', backgroundColor: 'white', padding: '12px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '15px', backgroundColor: 'white', padding: '12px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
                   {mentorshipCategories.map(cat => (
                     <button
                       key={cat.value}
@@ -462,6 +504,15 @@ const AlumniDashboard = ({ user, onLogout }) => {
                 </div>
               )}
 
+              {/* NEW: Alumni Search Input */}
+              <input
+                type="text"
+                placeholder={`Search your ${activeTab === 'jobs' ? 'opportunities' : 'discussions'}...`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}
+              />
+
               <h2 style={{ fontSize: '20px', color: '#333', marginBottom: '20px', display: 'flex', alignItems: 'center', fontWeight: 'bold' }}>
                 <span style={{ marginRight: '10px', fontSize: '24px' }}>{activeTab === 'jobs' ? '📌' : '💡'}</span>
                 {activeTab === 'jobs' ? 'Active Opportunities' : 'Mentorship Discussions'}
@@ -469,11 +520,10 @@ const AlumniDashboard = ({ user, onLogout }) => {
 
               {loading ? <p style={{ textAlign: 'center', color: '#6b7280' }}>Loading feed...</p> : filteredPosts.length === 0 ? (
                 <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '50px', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', borderTop: '5px solid #d1d5db', color: '#6b7280' }}>
-                  <h3>No posts found.</h3>
+                  <h3>{searchQuery ? `No matches for "${searchQuery}"` : 'No posts found.'}</h3>
                   <p>Use the form on the right to share an opportunity!</p>
                 </div>
               ) : filteredPosts.map((post) => {
-                // Dynamically append current role settings onto thread titles
                 const displayTitleBadge = post.users?.show_workplace && post.users?.current_role
                   ? ` — ${post.users.current_role}`
                   : '';
@@ -495,9 +545,21 @@ const AlumniDashboard = ({ user, onLogout }) => {
                     </p>
                     <p style={{ color: '#374151', whiteSpace: 'pre-line', lineHeight: '1.7', fontSize: '15px' }}>{post.content}</p>
                     {post.image_url && <div style={{ marginTop: '20px', marginBottom: '15px' }}><img src={post.image_url} alt="Post attachment" style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px', border: '1px solid #e5e7eb' }} /></div>}
-                    <div style={{ marginTop: '25px', display: 'flex', gap: '15px', borderTop: '1px solid #f3f4f6', paddingTop: '20px' }}>
+
+                    {/* NEW: Action Buttons (Include Delete functionality) */}
+                    <div style={{ marginTop: '25px', display: 'flex', gap: '15px', borderTop: '1px solid #f3f4f6', paddingTop: '20px', flexWrap: 'wrap' }}>
                       {post.application_link && <a href={post.application_link} target="_blank" rel="noopener noreferrer" style={{ backgroundColor: '#4c2882', color: 'white', padding: '10px 20px', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>{activeTab === 'jobs' ? 'View Application ↗' : 'View Resource ↗'}</a>}
-                      <button onClick={() => toggleComments(post.id)} style={{ padding: '10px 20px', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid', marginLeft: 'auto', backgroundColor: expandedPostId === post.id ? '#f3e8ff' : 'white', borderColor: expandedPostId === post.id ? '#4c2882' : '#d1d5db', color: expandedPostId === post.id ? '#4c2882' : '#374151' }}>💬 {expandedPostId === post.id ? 'Close Thread' : 'View Discussion'}</button>
+
+                      <button onClick={() => toggleComments(post.id)} style={{ padding: '10px 20px', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid', backgroundColor: expandedPostId === post.id ? '#f3e8ff' : 'white', borderColor: expandedPostId === post.id ? '#4c2882' : '#d1d5db', color: expandedPostId === post.id ? '#4c2882' : '#374151' }}>💬 {expandedPostId === post.id ? 'Close Thread' : 'View Discussion'}</button>
+
+                      {/* Delete Post Button */}
+                      {post.author_id === activeUserId && (
+                        <button
+                          onClick={() => handleDeletePost(post.id)}
+                          style={{ backgroundColor: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', marginLeft: 'auto' }}>
+                          🗑️ Delete
+                        </button>
+                      )}
                     </div>
                     {expandedPostId === post.id && <PostComments postId={post.id} currentUser={user} />}
                   </div>
@@ -531,179 +593,178 @@ const AlumniDashboard = ({ user, onLogout }) => {
 };
 
 export const AlumniCurriculumReview = ({ user }) => {
-    const [treeData, setTreeData] = useState([]);
-    const [loadingTree, setLoadingTree] = useState(true);
-    
-    // Expand/Collapse state
-    const [expandedCareers, setExpandedCareers] = useState({});
-    const [expandedSkills, setExpandedSkills] = useState({});
+  const [treeData, setTreeData] = useState([]);
+  const [loadingTree, setLoadingTree] = useState(true);
 
-    // Feedback Form State
-    const [activeTarget, setActiveTarget] = useState(null); // { id, type, name }
-    const [feedbackType, setFeedbackType] = useState('better_alternative');
-    const [suggestion, setSuggestion] = useState('');
-    const [submitting, setSubmitting] = useState(false);
+  // Expand/Collapse state
+  const [expandedCareers, setExpandedCareers] = useState({});
+  const [expandedSkills, setExpandedSkills] = useState({});
 
-    useEffect(() => {
-        const fetchTree = async () => {
-            try {
-                const res = await fetch('http://127.0.0.1:5000/api/quality/curriculum-tree');
-                const data = await res.json();
-                if (data.success) setTreeData(data.tree);
-            } catch (err) {
-                console.error("Failed to fetch curriculum tree", err);
-            }
-            setLoadingTree(false);
-        };
-        fetchTree();
-    }, []);
+  // Feedback Form State
+  const [activeTarget, setActiveTarget] = useState(null); // { id, type, name }
+  const [feedbackType, setFeedbackType] = useState('better_alternative');
+  const [suggestion, setSuggestion] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-    const toggleCareer = (id) => setExpandedCareers(prev => ({ ...prev, [id]: !prev[id] }));
-    const toggleSkill = (id) => setExpandedSkills(prev => ({ ...prev, [id]: !prev[id] }));
+  useEffect(() => {
+    const fetchTree = async () => {
+      try {
+        const res = await fetch('http://127.0.0.1:5000/api/quality/curriculum-tree');
+        const data = await res.json();
+        if (data.success) setTreeData(data.tree);
+      } catch (err) {
+        console.error("Failed to fetch curriculum tree", err);
+      }
+      setLoadingTree(false);
+    };
+    fetchTree();
+  }, []);
 
-    const handleSelectTarget = (id, type, name) => {
-        setActiveTarget({ id, type, name });
-        // Auto-scroll to form on mobile or small screens could go here
+  const toggleCareer = (id) => setExpandedCareers(prev => ({ ...prev, [id]: !prev[id] }));
+  const toggleSkill = (id) => setExpandedSkills(prev => ({ ...prev, [id]: !prev[id] }));
+
+  const handleSelectTarget = (id, type, name) => {
+    setActiveTarget({ id, type, name });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!activeTarget) return alert("Please select a target from the curriculum tree first.");
+
+    setSubmitting(true);
+    const payload = {
+      user_id: user.user_id || user.id,
+      user_role: 'alumni',
+      target_type: activeTarget.type,
+      target_id: activeTarget.id,
+      target_name: activeTarget.name,
+      feedback_type: feedbackType,
+      suggested_alternative_text: suggestion
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!activeTarget) return alert("Please select a target from the curriculum tree first.");
-        
-        setSubmitting(true);
-        const payload = {
-            user_id: user.user_id || user.id,
-            user_role: 'alumni',
-            target_type: activeTarget.type,
-            target_id: activeTarget.id,
-            target_name: activeTarget.name,
-            feedback_type: feedbackType,
-            suggested_alternative_text: suggestion
-        };
+    try {
+      const res = await fetch('http://127.0.0.1:5000/api/quality/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        alert("Insight submitted to Faculty Admins. Thank you!");
+        setSuggestion('');
+        setActiveTarget(null);
+      } else {
+        alert("Failed to submit insight.");
+      }
+    } catch (err) {
+      alert("Failed to submit insight.");
+    }
+    setSubmitting(false);
+  };
 
-        try {
-            const res = await fetch('http://127.0.0.1:5000/api/quality/feedback', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (res.ok) {
-                alert("Insight submitted to Faculty Admins. Thank you!");
-                setSuggestion('');
-                setActiveTarget(null);
-            } else {
-                alert("Failed to submit insight.");
-            }
-        } catch (err) {
-            alert("Failed to submit insight.");
-        }
-        setSubmitting(false);
-    };
+  return (
+    <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '35px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', borderTop: '5px solid #f59e0b', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
+      <h3 style={{ fontSize: '20px', color: '#111827', marginBottom: '10px' }}>🧠 Interactive Curriculum Review</h3>
+      <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '25px', lineHeight: '1.6' }}>Browse the current Faculty curriculum below. Click on any Career, Skill, or Resource to propose industry-aligned alternatives, flag outdated tech, or suggest new additions.</p>
 
-    return (
-      <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '35px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', borderTop: '5px solid #f59e0b', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
-        <h3 style={{ fontSize: '20px', color: '#111827', marginBottom: '10px' }}>🧠 Interactive Curriculum Review</h3>
-        <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '25px', lineHeight: '1.6' }}>Browse the current Faculty curriculum below. Click on any Career, Skill, or Resource to propose industry-aligned alternatives, flag outdated tech, or suggest new additions.</p>
-        
-        <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap' }}>
-            {/* LEFT PANE: CURRICULUM TREE */}
-            <div style={{ flex: '1 1 50%', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', backgroundColor: '#f8fafc', maxHeight: '600px', overflowY: 'auto' }}>
-                <h4 style={{ margin: '0 0 15px 0', color: '#334155', fontSize: '16px' }}>Curriculum Explorer</h4>
-                
-                {loadingTree ? (
-                    <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Loading structure...</div>
-                ) : treeData.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>No curriculum data available.</div>
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        {treeData.map(career => (
-                            <div key={career.id} style={{ backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 15px', backgroundColor: '#f1f5f9', cursor: 'pointer' }} onClick={() => toggleCareer(career.id)}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <span style={{ fontSize: '12px' }}>{expandedCareers[career.id] ? '▼' : '▶'}</span>
-                                        <strong style={{ color: '#1e293b', fontSize: '14px' }}>🗺️ {career.name}</strong>
-                                    </div>
-                                    <button onClick={(e) => { e.stopPropagation(); handleSelectTarget(career.id, 'career_path', career.name); }} style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '4px', border: '1px solid #f59e0b', background: activeTarget?.id === career.id ? '#f59e0b' : 'white', color: activeTarget?.id === career.id ? 'white' : '#b45309', cursor: 'pointer', fontWeight: 'bold' }}>Review</button>
-                                </div>
-                                
-                                {expandedCareers[career.id] && (
-                                    <div style={{ padding: '10px 10px 10px 30px', display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid #e2e8f0' }}>
-                                        {career.skills.length === 0 ? <span style={{ fontSize: '12px', color: '#94a3b8' }}>No skills defined.</span> : career.skills.map(skill => (
-                                            <div key={skill.id} style={{ border: '1px solid #e2e8f0', borderRadius: '6px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', backgroundColor: '#f8fafc', cursor: 'pointer' }} onClick={() => toggleSkill(skill.id)}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                        <span style={{ fontSize: '10px', color: '#64748b' }}>{expandedSkills[skill.id] ? '▼' : '▶'}</span>
-                                                        <span style={{ color: '#334155', fontSize: '13px', fontWeight: '600' }}>🧠 {skill.name}</span>
-                                                    </div>
-                                                    <button onClick={(e) => { e.stopPropagation(); handleSelectTarget(skill.id, 'skill', skill.name); }} style={{ padding: '3px 8px', fontSize: '10px', borderRadius: '4px', border: '1px solid #3b82f6', background: activeTarget?.id === skill.id ? '#3b82f6' : 'white', color: activeTarget?.id === skill.id ? 'white' : '#1d4ed8', cursor: 'pointer', fontWeight: 'bold' }}>Review</button>
-                                                </div>
+      <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap' }}>
+        {/* LEFT PANE: CURRICULUM TREE */}
+        <div style={{ flex: '1 1 50%', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', backgroundColor: '#f8fafc', maxHeight: '600px', overflowY: 'auto' }}>
+          <h4 style={{ margin: '0 0 15px 0', color: '#334155', fontSize: '16px' }}>Curriculum Explorer</h4>
 
-                                                {expandedSkills[skill.id] && (
-                                                    <div style={{ padding: '10px 10px 10px 25px', display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid #e2e8f0', backgroundColor: 'white' }}>
-                                                        {skill.resources.length === 0 ? <span style={{ fontSize: '11px', color: '#94a3b8' }}>No resources mapped.</span> : skill.resources.map(res => (
-                                                            <div key={res.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px', border: '1px solid #f1f5f9', borderRadius: '4px', backgroundColor: '#f8fafc' }}>
-                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
-                                                                    <span style={{ fontSize: '12px', color: '#475569', fontWeight: '500', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>🔗 {res.name}</span>
-                                                                    <a href={res.url} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: '#3b82f6', textDecoration: 'none' }}>{res.provider}</a>
-                                                                </div>
-                                                                <button onClick={() => handleSelectTarget(res.id, 'verified_resource', res.name)} style={{ padding: '3px 8px', fontSize: '10px', borderRadius: '4px', border: '1px solid #10b981', background: activeTarget?.id === res.id ? '#10b981' : 'white', color: activeTarget?.id === res.id ? 'white' : '#047857', cursor: 'pointer', fontWeight: 'bold', flexShrink: 0 }}>Review</button>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+          {loadingTree ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Loading structure...</div>
+          ) : treeData.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>No curriculum data available.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {treeData.map(career => (
+                <div key={career.id} style={{ backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 15px', backgroundColor: '#f1f5f9', cursor: 'pointer' }} onClick={() => toggleCareer(career.id)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '12px' }}>{expandedCareers[career.id] ? '▼' : '▶'}</span>
+                      <strong style={{ color: '#1e293b', fontSize: '14px' }}>🗺️ {career.name}</strong>
                     </div>
-                )}
-            </div>
+                    <button onClick={(e) => { e.stopPropagation(); handleSelectTarget(career.id, 'career_path', career.name); }} style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '4px', border: '1px solid #f59e0b', background: activeTarget?.id === career.id ? '#f59e0b' : 'white', color: activeTarget?.id === career.id ? 'white' : '#b45309', cursor: 'pointer', fontWeight: 'bold' }}>Review</button>
+                  </div>
 
-            {/* RIGHT PANE: FEEDBACK FORM */}
-            <div style={{ flex: '1 1 40%', minWidth: '300px' }}>
-                <div style={{ position: 'sticky', top: '20px', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
-                    {activeTarget ? (
-                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                            <div style={{ backgroundColor: '#fef3c7', padding: '12px', borderRadius: '8px', borderLeft: '4px solid #f59e0b' }}>
-                                <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#b45309', textTransform: 'uppercase' }}>Selected Target</span>
-                                <div style={{ fontSize: '15px', color: '#78350f', fontWeight: '800', marginTop: '2px' }}>{activeTarget.name}</div>
-                                <div style={{ fontSize: '10px', color: '#92400e', marginTop: '2px' }}>Type: {activeTarget.type.replace('_', ' ')}</div>
+                  {expandedCareers[career.id] && (
+                    <div style={{ padding: '10px 10px 10px 30px', display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid #e2e8f0' }}>
+                      {career.skills.length === 0 ? <span style={{ fontSize: '12px', color: '#94a3b8' }}>No skills defined.</span> : career.skills.map(skill => (
+                        <div key={skill.id} style={{ border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', backgroundColor: '#f8fafc', cursor: 'pointer' }} onClick={() => toggleSkill(skill.id)}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontSize: '10px', color: '#64748b' }}>{expandedSkills[skill.id] ? '▼' : '▶'}</span>
+                              <span style={{ color: '#334155', fontSize: '13px', fontWeight: '600' }}>🧠 {skill.name}</span>
                             </div>
+                            <button onClick={(e) => { e.stopPropagation(); handleSelectTarget(skill.id, 'skill', skill.name); }} style={{ padding: '3px 8px', fontSize: '10px', borderRadius: '4px', border: '1px solid #3b82f6', background: activeTarget?.id === skill.id ? '#3b82f6' : 'white', color: activeTarget?.id === skill.id ? 'white' : '#1d4ed8', cursor: 'pointer', fontWeight: 'bold' }}>Review</button>
+                          </div>
 
-                            <div>
-                                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', textTransform: 'uppercase' }}>Type of Insight</label>
-                                <select value={feedbackType} onChange={(e) => setFeedbackType(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '8px', fontFamily: 'inherit', backgroundColor: '#f8fafc' }}>
-                                    <option value="better_alternative">Suggest Better Alternative / URL</option>
-                                    <option value="outdated_content">Flag Outdated Content/Tech</option>
-                                    <option value="new_demand_suggestion">Propose New High-Demand Skill</option>
-                                </select>
+                          {expandedSkills[skill.id] && (
+                            <div style={{ padding: '10px 10px 10px 25px', display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid #e2e8f0', backgroundColor: 'white' }}>
+                              {skill.resources.length === 0 ? <span style={{ fontSize: '11px', color: '#94a3b8' }}>No resources mapped.</span> : skill.resources.map(res => (
+                                <div key={res.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px', border: '1px solid #f1f5f9', borderRadius: '4px', backgroundColor: '#f8fafc' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
+                                    <span style={{ fontSize: '12px', color: '#475569', fontWeight: '500', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>🔗 {res.name}</span>
+                                    <a href={res.url} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: '#3b82f6', textDecoration: 'none' }}>{res.provider}</a>
+                                  </div>
+                                  <button onClick={() => handleSelectTarget(res.id, 'verified_resource', res.name)} style={{ padding: '3px 8px', fontSize: '10px', borderRadius: '4px', border: '1px solid #10b981', background: activeTarget?.id === res.id ? '#10b981' : 'white', color: activeTarget?.id === res.id ? 'white' : '#047857', cursor: 'pointer', fontWeight: 'bold', flexShrink: 0 }}>Review</button>
+                                </div>
+                              ))}
                             </div>
-
-                            <div>
-                                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', textTransform: 'uppercase' }}>Your Professional Recommendation</label>
-                                <textarea value={suggestion} onChange={(e) => setSuggestion(e.target.value)} required rows="5" placeholder="Provide link replacements, explain why the industry has moved away from this tech, or suggest additions..." style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '8px', fontFamily: 'inherit', resize: 'vertical', backgroundColor: '#f8fafc' }} />
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                                <button type="button" onClick={() => setActiveTarget(null)} style={{ padding: '12px', flex: 1, backgroundColor: 'white', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
-                                <button type="submit" disabled={submitting} style={{ padding: '12px', flex: 2, background: '#4c2882', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>
-                                    {submitting ? 'Submitting...' : 'Submit Insight'}
-                                </button>
-                            </div>
-                        </form>
-                    ) : (
-                        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
-                            <span style={{ fontSize: '40px', display: 'block', marginBottom: '15px' }}>👈</span>
-                            <p style={{ margin: 0, fontWeight: '500', lineHeight: '1.5' }}>Select a Career, Skill, or Resource from the curriculum tree to provide specific industry feedback.</p>
+                          )}
                         </div>
-                    )}
+                      ))}
+                    </div>
+                  )}
                 </div>
+              ))}
             </div>
+          )}
+        </div>
+
+        {/* RIGHT PANE: FEEDBACK FORM */}
+        <div style={{ flex: '1 1 40%', minWidth: '300px' }}>
+          <div style={{ position: 'sticky', top: '20px', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+            {activeTarget ? (
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <div style={{ backgroundColor: '#fef3c7', padding: '12px', borderRadius: '8px', borderLeft: '4px solid #f59e0b' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#b45309', textTransform: 'uppercase' }}>Selected Target</span>
+                  <div style={{ fontSize: '15px', color: '#78350f', fontWeight: '800', marginTop: '2px' }}>{activeTarget.name}</div>
+                  <div style={{ fontSize: '10px', color: '#92400e', marginTop: '2px' }}>Type: {activeTarget.type.replace('_', ' ')}</div>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', textTransform: 'uppercase' }}>Type of Insight</label>
+                  <select value={feedbackType} onChange={(e) => setFeedbackType(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '8px', fontFamily: 'inherit', backgroundColor: '#f8fafc' }}>
+                    <option value="better_alternative">Suggest Better Alternative / URL</option>
+                    <option value="outdated_content">Flag Outdated Content/Tech</option>
+                    <option value="new_demand_suggestion">Propose New High-Demand Skill</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', textTransform: 'uppercase' }}>Your Professional Recommendation</label>
+                  <textarea value={suggestion} onChange={(e) => setSuggestion(e.target.value)} required rows="5" placeholder="Provide link replacements, explain why the industry has moved away from this tech, or suggest additions..." style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '8px', fontFamily: 'inherit', resize: 'vertical', backgroundColor: '#f8fafc' }} />
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                  <button type="button" onClick={() => setActiveTarget(null)} style={{ padding: '12px', flex: 1, backgroundColor: 'white', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
+                  <button type="submit" disabled={submitting} style={{ padding: '12px', flex: 2, background: '#4c2882', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>
+                    {submitting ? 'Submitting...' : 'Submit Insight'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
+                <span style={{ fontSize: '40px', display: 'block', marginBottom: '15px' }}>👈</span>
+                <p style={{ margin: 0, fontWeight: '500', lineHeight: '1.5' }}>Select a Career, Skill, or Resource from the curriculum tree to provide specific industry feedback.</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    );
+    </div>
+  );
 };
 
 export default AlumniDashboard;

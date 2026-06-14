@@ -17,6 +17,11 @@ const StudentJobBoard = ({ onBack }) => {
   const [expandedPostId, setExpandedPostId] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
 
+  // NEW: Search and Favorites State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [favorites, setFavorites] = useState([]);
+  const [showSaved, setShowSaved] = useState(false);
+
   // ⚡ FIXED: Added Hackathons category pill mapping
   const mentorshipCategories = [
     { label: 'All', value: 'All' },
@@ -33,25 +38,57 @@ const StudentJobBoard = ({ onBack }) => {
     fetchApprovedPosts();
   }, []);
 
-  // ⚡ FIXED: Selection payload updated to include show_workplace and current_role
+  // Fetch favorites when user loads
+  useEffect(() => {
+    if (user?.user_id) fetchFavorites();
+  }, [user]);
+
   const fetchApprovedPosts = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('alumni_posts')
-      .select('*, users(name, show_workplace, current_role)')
-      .eq('status', 'approved')
-      .order('created_at', { ascending: false });
-
-    if (error) console.error("Error fetching posts:", error);
-    else setPosts(data || []);
+    try {
+      // ⚡ Rerouted to Flask to bypass Supabase frontend RLS blocks
+      const res = await fetch('http://127.0.0.1:5000/api/discussion/feed');
+      const data = await res.json();
+      
+      if (data.success) {
+        setPosts(data.posts || []);
+      } else {
+        console.error("Error fetching posts:", data.error);
+      }
+    } catch (err) {
+      console.error("Fetch failed:", err);
+    }
     setLoading(false);
+  };
+
+  const fetchFavorites = async () => {
+    try {
+      const res = await fetch(`http://127.0.0.1:5000/api/discussion/favorites/${user.user_id}`);
+      const data = await res.json();
+      if (data.success) setFavorites(data.favorites);
+    } catch (err) { console.error("Failed to fetch favorites", err); }
+  };
+
+  const handleToggleFavorite = async (postId) => {
+    try {
+      const res = await fetch('http://127.0.0.1:5000/api/discussion/favorite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.user_id, post_id: postId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (data.favorited) setFavorites([...favorites, postId]);
+        else setFavorites(favorites.filter(id => id !== postId));
+      }
+    } catch (err) { console.error("Failed to toggle favorite", err); }
   };
 
   const toggleComments = (postId) => {
     setExpandedPostId(expandedPostId === postId ? null : postId);
   };
 
-  // ⚡ FIXED: Added 'hackathon' identifier allocation into the allowed filtering arrays
+  // ⚡ FIXED: Added search query and favorite view scoping
   const filteredPosts = posts.filter(post => {
     const isTabMatch = activeTab === 'jobs' 
       ? (post.post_type === 'job' || post.post_type === 'internship')
@@ -60,13 +97,16 @@ const StudentJobBoard = ({ onBack }) => {
     if (!isTabMatch) return false;
     
     if (activeTab === 'mentorship' && selectedCategory !== 'All') {
-      return post.post_type === selectedCategory;
+      if (post.post_type !== selectedCategory) return false;
     }
+
+    const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          post.content.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSaved = showSaved ? favorites.includes(post.id) : true;
     
-    return true;
+    return matchesSearch && matchesSaved;
   });
 
-  // ⚡ FIXED: Configured cyan identity theme tracking indicator for hackathon posts
   const getTypeColor = (type) => {
     switch (type) {
       case 'job': return '#10b981'; 
@@ -109,7 +149,7 @@ const StudentJobBoard = ({ onBack }) => {
             ALUMNI NETWORK — FSKTM UM
           </span>
           <h1 style={{ fontSize: '42px', margin: '0 0 10px 0', fontWeight: '700', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
-            Alumni<br_/> <span style={{ color: '#fcd34d' }}>Opportunities</span>
+            Alumni<br /> <span style={{ color: '#fcd34d' }}>Opportunities</span>
           </h1>
           <p style={{ opacity: 0.9, maxWidth: '600px', fontSize: '15px', lineHeight: '1.6', marginBottom: '30px' }}>
             Connect with seniors, seek mentorship, and find exclusive job or internship roles posted directly by FSKTM alumni.
@@ -118,7 +158,7 @@ const StudentJobBoard = ({ onBack }) => {
           {/* IN-BANNER TABS */}
           <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
             <button
-              onClick={() => { setActiveTab('jobs'); setSelectedCategory('All'); setExpandedPostId(null); }}
+              onClick={() => { setActiveTab('jobs'); setSelectedCategory('All'); setExpandedPostId(null); setSearchQuery(''); }}
               style={{
                 padding: '10px 24px', borderRadius: '30px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', border: 'none', transition: 'all 0.2s',
                 backgroundColor: activeTab === 'jobs' ? 'white' : 'rgba(255,255,255,0.15)',
@@ -129,7 +169,7 @@ const StudentJobBoard = ({ onBack }) => {
               💼 Job Board
             </button>
             <button
-              onClick={() => { setActiveTab('mentorship'); setSelectedCategory('All'); setExpandedPostId(null); }}
+              onClick={() => { setActiveTab('mentorship'); setSelectedCategory('All'); setExpandedPostId(null); setSearchQuery(''); }}
               style={{
                 padding: '10px 24px', borderRadius: '30px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', border: 'none', transition: 'all 0.2s',
                 backgroundColor: activeTab === 'mentorship' ? 'white' : 'rgba(255,255,255,0.15)',
@@ -152,48 +192,63 @@ const StudentJobBoard = ({ onBack }) => {
           {activeTab === 'jobs' ? 'Latest Roles' : 'Active Discussions'}
         </h2>
 
-        {/* CATEGORY PILLS */}
-        {activeTab === 'mentorship' && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', paddingBottom: '20px', marginBottom: '10px' }}>
-            {mentorshipCategories.map((cat) => (
-              <button
-                key={cat.value}
-                onClick={() => setSelectedCategory(cat.value)}
-                style={{
-                  whiteSpace: 'nowrap', padding: '8px 18px', borderRadius: '25px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s ease', border: 'none',
-                  backgroundColor: selectedCategory === cat.value ? '#4c2882' : '#e5e7eb',
-                  color: selectedCategory === cat.value ? 'white' : '#4b5563',
-                  boxShadow: selectedCategory === cat.value ? '0 4px 6px rgba(76, 40, 130, 0.2)' : 'none'
-                }}
-                onMouseOver={(e) => {
-                  if (selectedCategory !== cat.value) e.currentTarget.style.backgroundColor = '#d1d5db';
-                }}
-                onMouseOut={(e) => {
-                  if (selectedCategory !== cat.value) e.currentTarget.style.backgroundColor = '#e5e7eb';
-                }}
-              >
-                {cat.label}
-              </button>
-            ))}
+        {/* CATEGORY PILLS & REAL-TIME SEARCH */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '30px' }}>
+          {activeTab === 'mentorship' && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+              {mentorshipCategories.map((cat) => (
+                <button
+                  key={cat.value}
+                  onClick={() => setSelectedCategory(cat.value)}
+                  style={{
+                    whiteSpace: 'nowrap', padding: '8px 18px', borderRadius: '25px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s ease', border: 'none',
+                    backgroundColor: selectedCategory === cat.value ? '#4c2882' : '#e5e7eb',
+                    color: selectedCategory === cat.value ? 'white' : '#4b5563',
+                    boxShadow: selectedCategory === cat.value ? '0 4px 6px rgba(76, 40, 130, 0.2)' : 'none'
+                  }}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Search Bar & Saved Toggle */}
+          <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+            <input 
+              type="text" 
+              placeholder={`Search ${activeTab === 'jobs' ? 'jobs & internships' : 'mentorship discussions'}...`} 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ flex: 1, padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}
+            />
+            <button 
+              onClick={() => setShowSaved(!showSaved)}
+              style={{ 
+                padding: '12px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', 
+                backgroundColor: showSaved ? '#fffbeb' : 'white', 
+                color: showSaved ? '#b45309' : '#4b5563',
+                cursor: 'pointer', fontWeight: 'bold', whiteSpace: 'nowrap', transition: 'all 0.2s'
+              }}>
+              {showSaved ? '⭐ Viewing Saved' : '☆ View Saved'}
+            </button>
           </div>
-        )}
+        </div>
 
         {loading ? <p style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>Loading opportunities...</p> : filteredPosts.length === 0 ? (
           <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '50px', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', borderTop: '5px solid #d1d5db', color: '#6b7280' }}>
             <h3 style={{ fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", color: '#374151' }}>
-              {activeTab === 'mentorship' && selectedCategory !== 'All' 
+              {searchQuery ? `No results found for "${searchQuery}"` : 
+               (activeTab === 'mentorship' && selectedCategory !== 'All' 
                 ? `No discussions found for ${mentorshipCategories.find(c => c.value === selectedCategory)?.label}.`
-                : 'No posts found yet.'}
+                : 'No posts found yet.')}
             </h3>
             <p>
-              {activeTab === 'mentorship' && selectedCategory !== 'All' 
-                ? 'Try selecting a different category or check back later!'
-                : 'Check back later for new opportunities from our alumni.'}
+              {searchQuery ? 'Try clearing your search filters.' : 'Check back later for new opportunities from our alumni.'}
             </p>
           </div>
         ) : (
           filteredPosts.map((post) => {
-            // ⚡ FIXED: Automated formatting as single line string matching the Alumni feed rules exactly
             const displayTitleBadge = post.users?.show_workplace && post.users?.current_role
               ? ` — ${post.users.current_role}`
               : '';
@@ -216,15 +271,25 @@ const StudentJobBoard = ({ onBack }) => {
                     <h3 style={{ margin: '10px 0 5px 0', fontSize: '22px', color: '#111827', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>{post.title}</h3>
                     {post.company_name && <p style={{ margin: 0, color: '#4b5563', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '5px' }}>🏢 {post.company_name}</p>}
                   </div>
-                  <span style={{ fontSize: '13px', color: '#9ca3af', fontWeight: '500' }}>
-                    {new Date(post.created_at).toLocaleDateString()}
-                  </span>
+                  
+                  {/* Favorite / Bookmark Button */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <span style={{ fontSize: '13px', color: '#9ca3af', fontWeight: '500' }}>
+                      {new Date(post.created_at).toLocaleDateString()}
+                    </span>
+                    <button 
+                      onClick={() => handleToggleFavorite(post.id)} 
+                      style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '22px', padding: '5px', transition: 'transform 0.1s' }}
+                      title={favorites.includes(post.id) ? "Remove from Saved" : "Save this Post"}
+                    >
+                      {favorites.includes(post.id) ? '⭐' : '☆'}
+                    </button>
+                  </div>
                 </div>
 
                 <div style={{ marginBottom: '20px' }}>
                   <span style={{ fontSize: '13px', color: '#4b5563' }}>
-                    {/* ⚡ FIXED: Dynamic workplace title string layout rendered smoothly */}
-                    Posted by: <strong style={{ color: '#111827' }}>{post.users?.name || 'Alumni'}{displayTitleBadge}</strong>
+                    Posted by: <strong style={{ color: '#111827' }}>{post.users?.name || 'Anonymous Alumni'}{displayTitleBadge}</strong>
                   </span>
                 </div>
 
