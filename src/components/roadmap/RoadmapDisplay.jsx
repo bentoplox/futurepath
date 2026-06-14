@@ -1,6 +1,6 @@
 // ============================================================================
 // FILE: src/components/roadmap/RoadmapDisplay.jsx
-// PURPOSE: Fetches roadmap from Flask Internal API
+// PURPOSE: Gamified Roadmap Display with Fixed Timeline Math
 // ============================================================================
 
 import React, { useState, useEffect } from 'react';
@@ -8,19 +8,16 @@ import { useAuth } from '../../context/AuthContext';
 import QuizModal from './QuizModal';
 import SkillCard from './SkillCard';
 
-const RoadmapDisplay = ({ careerId }) => { 
+const RoadmapDisplay = ({ careerId, onBack }) => { 
   const { user } = useAuth();
   
-  // Data States
   const [roadmapInfo, setRoadmapInfo] = useState({ career_name: '', description: '' });
   const [steps, setSteps] = useState([]);
   const [completedSteps, setCompletedSteps] = useState(new Set()); 
 
-  // UI States
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
   
-  // Capstone Exam State (Now synced with backend)
   const [showFinalExam, setShowFinalExam] = useState(false); 
   const [isCertified, setIsCertified] = useState(false);
   const [isEligibleForQuiz, setIsEligibleForQuiz] = useState(false);
@@ -30,14 +27,12 @@ const RoadmapDisplay = ({ careerId }) => {
     fetchRoadmapData();
   }, [careerId, user?.user_id]);
 
-  // ⚡ FETCH FROM YOUR FLASK BACKEND (Internal API)
   const fetchRoadmapData = async () => {
     if (!user?.user_id) return;
     
     setLoading(true);
     setErrorMsg(null);
     try {
-      // Calls the new FR4.2 route we built in app.py
       const url = `http://127.0.0.1:5000/api/roadmap/${careerId}?user_id=${user.user_id}`;
       const response = await fetch(url);
       const data = await response.json();
@@ -48,7 +43,6 @@ const RoadmapDisplay = ({ careerId }) => {
           setIsEligibleForQuiz(data.is_eligible_for_quiz);
           setIsCertified(data.is_certified);
           
-          // ⚡ RESTORE COMPLETED STEPS FROM BACKEND
           if (data.completed_steps) {
               setCompletedSteps(new Set(data.completed_steps));
           }
@@ -72,7 +66,6 @@ const RoadmapDisplay = ({ careerId }) => {
       
       setCompletedSteps(newSet);
 
-      // ⚡ SYNC WITH BACKEND
       if (user) {
           try {
               const res = await fetch('http://127.0.0.1:5000/api/progress', {
@@ -87,7 +80,6 @@ const RoadmapDisplay = ({ careerId }) => {
               
               const syncData = await res.json();
               if (syncData.success) {
-                  // After ticking, we refetch to check if we are now eligible for the quiz
                   fetchRoadmapData();
               }
           } catch (err) {
@@ -96,7 +88,6 @@ const RoadmapDisplay = ({ careerId }) => {
       }
   };
 
-  // ⚡ SEND PROGRESS TO FLASK
   const handleExamPassed = async () => {
       setIsCertified(true);
       setIsEligibleForQuiz(false);
@@ -106,39 +97,115 @@ const RoadmapDisplay = ({ careerId }) => {
   if (loading) return <div style={{textAlign:'center', padding:'40px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif"}}>Loading your personalized learning path...</div>;
   if (errorMsg) return <div style={{textAlign:'center', color:'red', padding:'40px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif"}}>Error: {errorMsg}</div>;
 
+  // ⚡ FIXED STATS CALCULATIONS: Only count steps that belong to THIS roadmap
+  const validCompletedStepsCount = steps.filter(s => completedSteps.has(s.step_id)).length;
+  const progressPercent = steps.length > 0 ? Math.round((validCompletedStepsCount / steps.length) * 100) : 0;
+  const stepsCompleted = validCompletedStepsCount;
+  const stepsRemaining = steps.length > 0 ? steps.length - stepsCompleted : 0;
+
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '50px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
+    <div style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '50px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
       
-      {/* 1. HEADER */}
-      <div style={{ textAlign: 'center', marginBottom: '40px', marginTop: '20px' }}>
-          <h2 style={{ margin: '0 0 10px 0', fontSize: '32px', color: '#111827', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>🗺️ {roadmapInfo.career_name}</h2>
-          <p style={{ color: '#4b5563', fontSize: '16px', maxWidth: '600px', margin: '0 auto' }}>{roadmapInfo.description}</p>
+      {/* 1. HEADER (Top Left Back Button + Center Title) */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '30px' }}>
+          
+          <button onClick={onBack} style={{ backgroundColor: 'white', border: '1px solid #d1d5db', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', color: '#374151', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+            ← Back to Dashboard
+          </button>
+          
+          <div style={{ flex: 1, textAlign: 'center', paddingRight: '120px' }}>
+            <h2 style={{ margin: '0 0 8px 0', fontSize: '32px', color: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+              🗺️ {roadmapInfo.career_name} Roadmap
+            </h2>
+            <p style={{ color: '#6b7280', fontSize: '15px', margin: 0 }}>
+              Your personalized learning journey to become a {roadmapInfo.career_name}
+            </p>
+          </div>
       </div>
 
-      {/* 2. ROADMAP STEPS */}
-      <div style={{ position: 'relative', paddingLeft: '20px', marginBottom: '40px' }}>
-        <div style={{ position: 'absolute', left: '29px', top: '20px', bottom: '20px', width: '2px', backgroundColor: '#e5e7eb' }}></div>
+      {/* 2. STATS BANNER */}
+      <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '30px', display: 'flex', alignItems: 'center', gap: '40px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', marginBottom: '50px', border: '1px solid #f3f4f6' }}>
+        
+        {/* Circular Progress */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '120px' }}>
+            <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: `conic-gradient(#4f46e5 ${progressPercent}%, #e0e7ff 0)`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
+                <div style={{ width: '80px', height: '80px', backgroundColor: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: '800', color: '#111827' }}>
+                    {progressPercent}%
+                </div>
+            </div>
+            <span style={{ fontSize: '13px', color: '#6b7280', fontWeight: '600' }}>Overall Progress</span>
+        </div>
 
-        {steps.map((step) => {
+        <div style={{ flex: 1 }}>
+            <div style={{ width: '100%', height: '12px', backgroundColor: '#e0e7ff', borderRadius: '10px', overflow: 'hidden', marginBottom: '30px' }}>
+                <div style={{ width: `${progressPercent}%`, height: '100%', backgroundColor: '#4f46e5', borderRadius: '10px', transition: 'width 1s' }}></div>
+            </div>
+
+            {/* Exactly 2 Real Data KPI Elements */}
+            <div style={{ display: 'flex', gap: '40px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <div style={{ width: '40px', height: '40px', backgroundColor: '#e0e7ff', color: '#4f46e5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>💠</div>
+                    <div>
+                        <div style={{ fontSize: '20px', fontWeight: '800', color: '#111827' }}>{stepsCompleted}</div>
+                        <div style={{ fontSize: '13px', color: '#6b7280', fontWeight: '600' }}>Steps Completed</div>
+                    </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <div style={{ width: '40px', height: '40px', backgroundColor: '#fef3c7', color: '#f59e0b', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>🎯</div>
+                    <div>
+                        <div style={{ fontSize: '20px', fontWeight: '800', color: '#111827' }}>{stepsRemaining}</div>
+                        <div style={{ fontSize: '13px', color: '#6b7280', fontWeight: '600' }}>Steps Left</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </div>
+
+      {/* 3. VERTICAL TIMELINE ROADMAP */}
+      <div style={{ paddingLeft: '40px' }}>
+        {steps.map((step, index) => {
           const isCompleted = completedSteps.has(step.step_id);
-          const skill = step.skill; // Unpacking the nested skill object from the database
+          // Determine if this is the "Active/In-Progress" step
+          const firstIncompleteIdx = steps.findIndex(s => !completedSteps.has(s.step_id));
+          const isActive = index === firstIncompleteIdx;
+          const isLocked = !isCompleted && !isActive;
+
+          // Determine node status string for SkillCard
+          let status = 'locked';
+          if (isCompleted) status = 'completed';
+          if (isActive) status = 'in-progress';
 
           return (
-            <div key={step.step_id} style={{ marginBottom: '30px', position: 'relative', display: 'flex', gap: '20px' }}>
+            <div key={step.step_id} style={{ position: 'relative', display: 'flex', gap: '40px', paddingBottom: '40px' }}>
               
-              <div style={{
-                  width: '40px', height: '40px', borderRadius: '50%', 
-                  backgroundColor: isCompleted ? '#10b981' : 'white', 
-                  border: isCompleted ? '2px solid #10b981' : '2px solid #6366f1',
-                  color: isCompleted ? 'white' : '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '18px', zIndex: 1, flexShrink: 0, transition: 'all 0.3s'
-              }}>
-                {isCompleted ? '✓' : step.step_order}
+              {/* Vertical Connecting Line */}
+              {index < steps.length - 1 && (
+                  <div style={{
+                      position: 'absolute', left: '22px', top: '48px', bottom: '-10px', width: '3px',
+                      backgroundColor: isCompleted ? '#10b981' : '#e5e7eb', zIndex: 0
+                  }}></div>
+              )}
+
+              {/* Timeline Node Icon */}
+              <div style={{ zIndex: 1 }}>
+                  {status === 'completed' && (
+                      <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#10b981', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', boxShadow: '0 0 0 6px #d1fae5' }}>✓</div>
+                  )}
+                  {status === 'in-progress' && (
+                      <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'white', border: '3px solid #4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 6px #e0e7ff', boxSizing: 'border-box' }}>
+                          <div style={{ width: '20px', height: '20px', backgroundColor: '#4f46e5', borderRadius: '50%' }}></div>
+                      </div>
+                  )}
+                  {status === 'locked' && (
+                      <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#f3f4f6', border: '2px solid #d1d5db', color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', boxSizing: 'border-box' }}>🔒</div>
+                  )}
               </div>
 
+              {/* Skill Card Details */}
               <SkillCard 
                 stepNumber={step.step_order}
-                skill={skill}
-                isCompleted={isCompleted}
+                skill={step.skill}
+                status={status}
                 onUpdateProgress={() => toggleStep(step.step_id)}
               />
             </div>
@@ -146,7 +213,7 @@ const RoadmapDisplay = ({ careerId }) => {
         })}
       </div>
 
-      {/* 3. CAPSTONE FINAL EXAM SECTION (PERSISTENT UI) */}
+      {/* 4. CAPSTONE FINAL EXAM SECTION */}
       {isEligibleForQuiz && (
           <div style={{ backgroundColor: '#fffbeb', padding: '35px', borderRadius: '16px', textAlign: 'center', marginBottom: '40px', border: '2px solid #f59e0b', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
               <span style={{ fontSize: '50px', display: 'block', marginBottom: '15px' }}>🎓</span>
@@ -175,13 +242,11 @@ const RoadmapDisplay = ({ careerId }) => {
       {/* QUIZ MODAL TRIGGER */}
       {showFinalExam && (
         <QuizModal 
-            // We pass the careerId to fetch the 20-question capstone quiz
             careerId={careerId} 
             onClose={() => setShowFinalExam(false)}
             onQuizPass={handleExamPassed}
         />
       )}
-
     </div>
   );
 };

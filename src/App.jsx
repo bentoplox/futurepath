@@ -107,10 +107,11 @@ const AppContent = () => {
         {/* VIEW 3: ROADMAP DISPLAY */}
         {currentView === 'roadmap' && selectedCareerId && (
           <div style={{ paddingTop: '20px' }}>
-            <div style={{ maxWidth: '800px', margin: '0 auto 20px auto' }}>
-              <button onClick={() => setCurrentView('dashboard')} style={styles.secondaryButton}>← Back to Dashboard</button>
-            </div>
-            <RoadmapDisplay careerId={selectedCareerId} />
+            {/* ⚡ FIXED: Removed the duplicate outer back button and passed the action as a prop! */}
+            <RoadmapDisplay 
+               careerId={selectedCareerId} 
+               onBack={() => setCurrentView('dashboard')} 
+            />
           </div>
         )}
 
