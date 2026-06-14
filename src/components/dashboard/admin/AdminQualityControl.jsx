@@ -42,7 +42,7 @@ const AdminQualityControl = () => {
     return (
         <div style={{ fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif", maxWidth: '1200px', margin: '0 auto', paddingBottom: '40px' }}>
             <div style={{ marginBottom: '30px' }}>
-                <h2 style={{ fontSize: '28px', fontWeight: '800', color: '#111827', margin: '0 0 8px 0' }}>🎯 Quality Control Center</h2>
+                <h2 style={{ fontSize: '28px', fontWeight: '800', color: '#111827', margin: '0 0 8px 0' }}>🛡️ Quality Control Center</h2>
                 <p style={{ color: '#64748b', fontSize: '15px', margin: 0 }}>Crowdsourced curriculum feedback from Alumni experts and Student bug reporters.</p>
             </div>
 
@@ -52,7 +52,7 @@ const AdminQualityControl = () => {
                 {/* COLUMN 1: ALUMNI INDUSTRY INSIGHTS */}
                 <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '30px', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', borderTop: '6px solid #f59e0b' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '25px' }}>
-                        <span style={{ fontSize: '24px' }}>💡</span>
+                        <span style={{ fontSize: '24px' }}>📈</span>
                         <h3 style={{ fontSize: '18px', fontWeight: '800', margin: 0, color: '#1e293b' }}>Alumni Expert Insights</h3>
                     </div>
                     
@@ -75,7 +75,7 @@ const AdminQualityControl = () => {
                             </div>
                         )) : (
                             <div style={{ textAlign: 'center', padding: '60px 20px', backgroundColor: '#f9fafb', borderRadius: '12px', border: '2px dashed #e2e8f0' }}>
-                                <span style={{ fontSize: '40px', display: 'block', marginBottom: '10px' }}>🙌</span>
+                                <span style={{ fontSize: '40px', display: 'block', marginBottom: '10px' }}>📁</span>
                                 <p style={{ color: '#64748b', margin: 0, fontWeight: '500' }}>No pending insights from alumni.</p>
                             </div>
                         )}
@@ -85,7 +85,7 @@ const AdminQualityControl = () => {
                 {/* COLUMN 2: STUDENT BUG REPORTS */}
                 <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '30px', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', borderTop: `6px solid ${umBlue}` }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '25px' }}>
-                        <span style={{ fontSize: '24px' }}>🐛</span>
+                        <span style={{ fontSize: '24px' }}>🚩</span>
                         <h3 style={{ fontSize: '18px', fontWeight: '800', margin: 0, color: '#1e293b' }}>Student Quality Reports</h3>
                     </div>
 
@@ -109,7 +109,7 @@ const AdminQualityControl = () => {
                             </div>
                         )) : (
                             <div style={{ textAlign: 'center', padding: '60px 20px', backgroundColor: '#f9fafb', borderRadius: '12px', border: '2px dashed #e2e8f0' }}>
-                                <span style={{ fontSize: '40px', display: 'block', marginBottom: '10px' }}>✅</span>
+                                <span style={{ fontSize: '40px', display: 'block', marginBottom: '10px' }}>✨</span>
                                 <p style={{ color: '#64748b', margin: 0, fontWeight: '500' }}>No pending student reports. Curriculum looks healthy!</p>
                             </div>
                         )}

@@ -1,3 +1,8 @@
+// ============================================================================
+// FILE: src/components/alumnihub/AlumniDashboard.jsx
+// PURPOSE: Alumni Hub with Interactive Curriculum Review (Professional Emojis)
+// ============================================================================
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { styles } from '../../styles/styles';
@@ -158,7 +163,6 @@ const AlumniDashboard = ({ user, onLogout }) => {
   const fetchPosts = async () => {
     setLoading(true);
     try {
-      // ⚡ Rerouted to Flask to fetch all personal posts (pending + live)
       const res = await fetch('http://127.0.0.1:5000/api/discussion/all');
       const data = await res.json();
 
@@ -177,7 +181,6 @@ const AlumniDashboard = ({ user, onLogout }) => {
     setExpandedPostId(expandedPostId === postId ? null : postId);
   };
 
-  // ⚡ FIXED: Added Delete Function
   const handleDeletePost = async (postId) => {
     if (!window.confirm("Are you sure you want to permanently delete this post?")) return;
 
@@ -195,7 +198,6 @@ const AlumniDashboard = ({ user, onLogout }) => {
     } catch (err) { console.error("Delete failed", err); }
   };
 
-  // ⚡ FIXED: Added search filtering
   const filteredPosts = posts.filter(post => {
     const isTabMatch = activeTab === 'jobs'
       ? (post.post_type === 'job' || post.post_type === 'internship')
@@ -211,7 +213,6 @@ const AlumniDashboard = ({ user, onLogout }) => {
     return matchesSearch;
   });
 
-  // ⚡ FIXED: Submitting to Flask to handle pending vs approved logic
   const handlePostSubmit = async (e) => {
     e.preventDefault();
     if (!activeUserId) return alert('You must be logged in');
@@ -249,7 +250,6 @@ const AlumniDashboard = ({ user, onLogout }) => {
       company_name: ['mentorship', 'resume_review', 'interview_prep'].includes(newPost.type) ? null : newPost.company_name,
       application_link: newPost.application_link,
       image_url: finalImageUrl
-      // Status is automatically handled by the Flask backend now!
     };
 
     try {
@@ -266,7 +266,7 @@ const AlumniDashboard = ({ user, onLogout }) => {
           : 'Discussion posted successfully!');
         setNewPost({ title: '', content: '', type: activeTab === 'jobs' ? 'job' : 'mentorship', company_name: '', application_link: '' });
         setPosterFile(null);
-        fetchPosts(); // Refresh feeds instantly
+        fetchPosts(); 
       } else {
         alert("Error: " + data.error);
       }
@@ -341,7 +341,7 @@ const AlumniDashboard = ({ user, onLogout }) => {
               { id: 'jobs', label: '💼 Job Board' },
               { id: 'mentorship', label: '💬 Mentorship Hub' },
               { id: 'stats', label: '📊 Fresh Graduate Data' },
-              { id: 'review', label: '🧠 Curriculum Review' },
+              { id: 'review', label: '🔍 Curriculum Review' }, // ⚡ Professional Emoji Updated
               { id: 'settings', label: '⚙️ Profile Settings' }
             ].map(tab => (
               <button
@@ -546,7 +546,7 @@ const AlumniDashboard = ({ user, onLogout }) => {
                     <p style={{ color: '#374151', whiteSpace: 'pre-line', lineHeight: '1.7', fontSize: '15px' }}>{post.content}</p>
                     {post.image_url && <div style={{ marginTop: '20px', marginBottom: '15px' }}><img src={post.image_url} alt="Post attachment" style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px', border: '1px solid #e5e7eb' }} /></div>}
 
-                    {/* NEW: Action Buttons (Include Delete functionality) */}
+                    {/* Action Buttons (Include Delete functionality) */}
                     <div style={{ marginTop: '25px', display: 'flex', gap: '15px', borderTop: '1px solid #f3f4f6', paddingTop: '20px', flexWrap: 'wrap' }}>
                       {post.application_link && <a href={post.application_link} target="_blank" rel="noopener noreferrer" style={{ backgroundColor: '#4c2882', color: 'white', padding: '10px 20px', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>{activeTab === 'jobs' ? 'View Application ↗' : 'View Resource ↗'}</a>}
 
@@ -663,7 +663,8 @@ export const AlumniCurriculumReview = ({ user }) => {
 
   return (
     <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '35px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', borderTop: '5px solid #f59e0b', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}>
-      <h3 style={{ fontSize: '20px', color: '#111827', marginBottom: '10px' }}>🧠 Interactive Curriculum Review</h3>
+      {/* ⚡ Professional Emoji Updated Here */}
+      <h3 style={{ fontSize: '20px', color: '#111827', marginBottom: '10px' }}>🔍 Interactive Curriculum Review</h3>
       <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '25px', lineHeight: '1.6' }}>Browse the current Faculty curriculum below. Click on any Career, Skill, or Resource to propose industry-aligned alternatives, flag outdated tech, or suggest new additions.</p>
 
       <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap' }}>
@@ -694,7 +695,8 @@ export const AlumniCurriculumReview = ({ user }) => {
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', backgroundColor: '#f8fafc', cursor: 'pointer' }} onClick={() => toggleSkill(skill.id)}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <span style={{ fontSize: '10px', color: '#64748b' }}>{expandedSkills[skill.id] ? '▼' : '▶'}</span>
-                              <span style={{ color: '#334155', fontSize: '13px', fontWeight: '600' }}>🧠 {skill.name}</span>
+                              {/* ⚡ Professional Emoji Updated Here */}
+                              <span style={{ color: '#334155', fontSize: '13px', fontWeight: '600' }}>🔹 {skill.name}</span>
                             </div>
                             <button onClick={(e) => { e.stopPropagation(); handleSelectTarget(skill.id, 'skill', skill.name); }} style={{ padding: '3px 8px', fontSize: '10px', borderRadius: '4px', border: '1px solid #3b82f6', background: activeTarget?.id === skill.id ? '#3b82f6' : 'white', color: activeTarget?.id === skill.id ? 'white' : '#1d4ed8', cursor: 'pointer', fontWeight: 'bold' }}>Review</button>
                           </div>
@@ -756,7 +758,8 @@ export const AlumniCurriculumReview = ({ user }) => {
               </form>
             ) : (
               <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
-                <span style={{ fontSize: '40px', display: 'block', marginBottom: '15px' }}>👈</span>
+                {/* ⚡ Professional Emoji Updated Here */}
+                <span style={{ fontSize: '40px', display: 'block', marginBottom: '15px' }}>📋</span>
                 <p style={{ margin: 0, fontWeight: '500', lineHeight: '1.5' }}>Select a Career, Skill, or Resource from the curriculum tree to provide specific industry feedback.</p>
               </div>
             )}
