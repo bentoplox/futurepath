@@ -94,16 +94,6 @@ def commit_pathway():
             s_id = s_res.data[0]['skill_id']
             supabase.table('roadmap_step').insert({"career_id": c_id, "skill_id": s_id, "step_order": i + 1}).execute()
 
-            # Map resources
-            tag = step.get('concept_tag')
-            verified = supabase.table('verified_resources').select('*').eq('concept_tag', tag).execute()
-            if verified.data:
-                for res in verified.data:
-                    supabase.table('learning_resource').insert({"skill_id": s_id, "title": res['title'], "provider": res['provider'], "url": res['url'], "cost_type": "free"}).execute()
-            else:
-                url = f"https://www.youtube.com/results?search_query={step['skill_name'].replace(' ', '+')}+tutorial"
-                supabase.table('learning_resource').insert({"skill_id": s_id, "title": f"Intro to {step['skill_name']}", "provider": "YouTube", "url": url, "cost_type": "free"}).execute()
-
             # Insert Quizzes
             sq = [q for q in data['quizzes'] if q['skill_name'] == step['skill_name']]
             if sq:

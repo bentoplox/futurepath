@@ -290,7 +290,6 @@ def admin_delete_career(career_id):
         supabase.table('roadmap').delete().eq('career_id', career_id).execute()
         supabase.table('roadmap_step').delete().eq('career_id', career_id).execute()
         if skill_ids:
-            supabase.table('learning_resource').delete().in_('skill_id', skill_ids).execute()
             supabase.table('quiz').delete().in_('skill_id', skill_ids).execute()
             supabase.table('quiz_result').delete().in_('skill_id', skill_ids).execute()
             supabase.table('skill').delete().in_('skill_id', skill_ids).execute()
