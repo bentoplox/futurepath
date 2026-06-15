@@ -191,7 +191,7 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
                             {!editingQuiz && !quizDraft && (
                                 <div style={{ display: 'flex', gap: '10px' }}>
                                     <button onClick={() => handleGenerateQuiz(selectedSkill)} disabled={generatingQuiz} style={{ padding: '12px 20px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px rgba(245, 158, 11, 0.2)' }}>
-                                        {generatingQuiz ? '⏳ Drafting...' : '🧠 Auto-Generate with AI'}
+                                        {generatingQuiz ? '⏳ Drafting...' : 'Auto-Generate with AI'}
                                     </button>
                                     <button onClick={startAdd} style={{ padding: '12px 20px', background: '#065f46', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px rgba(6, 95, 70, 0.2)' }}>
                                         <span>➕</span> Manual Input
