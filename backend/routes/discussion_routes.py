@@ -26,6 +26,7 @@ def create_post():
             "company_name": data.get('company_name', ''),
             "application_link": data.get('application_link', ''),
             "image_url": data.get('image_url'),
+            "file_url": data.get('file_url'),
             "status": status
         }
         

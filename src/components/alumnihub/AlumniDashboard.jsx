@@ -64,6 +64,7 @@ const AlumniDashboard = ({ user, onLogout }) => {
     title: '', content: '', type: 'job', company_name: '', application_link: ''
   });
   const [posterFile, setPosterFile] = useState(null);
+  const [attachmentFile, setAttachmentFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -219,10 +220,11 @@ const AlumniDashboard = ({ user, onLogout }) => {
 
     setUploading(true);
     let finalImageUrl = null;
+    let finalFileUrl = null;
 
     if (posterFile) {
       const fileExt = posterFile.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
+      const fileName = `${Date.now()}_img.${fileExt}`;
       const filePath = `${fileName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -241,6 +243,29 @@ const AlumniDashboard = ({ user, onLogout }) => {
 
       finalImageUrl = publicUrl;
     }
+    
+    if (attachmentFile) {
+      const fileExt = attachmentFile.name.split('.').pop();
+      const fileName = `${Date.now()}_file.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      // Re-using the post_images bucket for simplicity, or create a 'post_files' bucket.
+      const { error: uploadError } = await supabase.storage
+        .from('post_images') 
+        .upload(filePath, attachmentFile);
+
+      if (uploadError) {
+        alert('Error uploading document: ' + uploadError.message);
+        setUploading(false);
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('post_images')
+        .getPublicUrl(filePath);
+
+      finalFileUrl = publicUrl;
+    }
 
     const payload = {
       author_id: activeUserId,
@@ -249,7 +274,8 @@ const AlumniDashboard = ({ user, onLogout }) => {
       post_type: newPost.type,
       company_name: ['mentorship', 'resume_review', 'interview_prep'].includes(newPost.type) ? null : newPost.company_name,
       application_link: newPost.application_link,
-      image_url: finalImageUrl
+      image_url: finalImageUrl,
+      file_url: finalFileUrl
     };
 
     try {
@@ -546,6 +572,42 @@ const AlumniDashboard = ({ user, onLogout }) => {
                     <p style={{ color: '#374151', whiteSpace: 'pre-line', lineHeight: '1.7', fontSize: '15px' }}>{post.content}</p>
                     {post.image_url && <div style={{ marginTop: '20px', marginBottom: '15px' }}><img src={post.image_url} alt="Post attachment" style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px', border: '1px solid #e5e7eb' }} /></div>}
 
+                    {/* ⚡ NEW: Document Attachment Rendering */}
+                    {post.file_url && (
+                      <div style={{ 
+                        marginTop: '15px', 
+                        backgroundColor: '#f8fafc', 
+                        border: '1px solid #e2e8f0', 
+                        borderRadius: '8px', 
+                        padding: '12px 16px', 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center' 
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#475569', fontSize: '13px', fontWeight: '500' }}>
+                          <span>📄</span>
+                          <span>Attached Document</span>
+                        </div>
+                        <a 
+                          href={post.file_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          style={{ 
+                            backgroundColor: 'white', 
+                            color: '#4c2882', 
+                            border: '1px solid #4c2882', 
+                            padding: '6px 12px', 
+                            borderRadius: '6px', 
+                            textDecoration: 'none', 
+                            fontSize: '12px', 
+                            fontWeight: 'bold' 
+                          }}
+                        >
+                          Download / View ↘
+                        </a>
+                      </div>
+                    )}
+
                     {/* Action Buttons (Include Delete functionality) */}
                     <div style={{ marginTop: '25px', display: 'flex', gap: '15px', borderTop: '1px solid #f3f4f6', paddingTop: '20px', flexWrap: 'wrap' }}>
                       {post.application_link && <a href={post.application_link} target="_blank" rel="noopener noreferrer" style={{ backgroundColor: '#4c2882', color: 'white', padding: '10px 20px', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>{activeTab === 'jobs' ? 'View Application ↗' : 'View Resource ↗'}</a>}
@@ -580,6 +642,13 @@ const AlumniDashboard = ({ user, onLogout }) => {
                   <div><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px' }}>Title</label><input type="text" placeholder="Title..." required style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', fontFamily: 'inherit' }} value={newPost.title} onChange={(e) => setNewPost({ ...newPost, title: e.target.value })} /></div>
                   {activeTab === 'jobs' && (<><div><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px' }}>Company Name</label><input type="text" placeholder="Company..." style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', fontFamily: 'inherit' }} value={newPost.company_name} onChange={(e) => setNewPost({ ...newPost, company_name: e.target.value })} /></div><div><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px' }}>Upload Poster (Optional)</label><input type="file" accept="image/*" onChange={(e) => setPosterFile(e.target.files[0])} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px', backgroundColor: '#f9fafb', fontFamily: 'inherit' }} /></div></>)}
                   <div><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px' }}>Description</label><textarea placeholder="Details..." required rows="4" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', fontFamily: 'inherit' }} value={newPost.content} onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}></textarea></div>
+                  
+                  {/* ⚡ NEW: Document Attachment Field */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px' }}>Attach Document (Optional)</label>
+                    <input type="file" onChange={(e) => setAttachmentFile(e.target.files[0])} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px', backgroundColor: '#f9fafb', fontFamily: 'inherit' }} />
+                  </div>
+
                   <div><label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px' }}>External Link (Optional)</label><input type="url" placeholder="https://..." style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', fontFamily: 'inherit' }} value={newPost.application_link} onChange={(e) => setNewPost({ ...newPost, application_link: e.target.value })} /></div>
                   <button type="submit" disabled={uploading} style={{ width: '100%', padding: '12px', marginTop: '10px', borderRadius: '8px', border: 'none', backgroundColor: uploading ? '#9ca3af' : '#4c2882', color: 'white', fontWeight: 'bold', cursor: uploading ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>{uploading ? 'Uploading...' : 'Submit Post'}</button>
                 </form>
@@ -639,7 +708,8 @@ export const AlumniCurriculumReview = ({ user }) => {
       target_id: activeTarget.id,
       target_name: activeTarget.name,
       feedback_type: feedbackType,
-      suggested_alternative_text: suggestion
+      suggested_alternative_text: suggestion,
+      status: 'pending' // ⚡ FORCED ACTIVE QUEUE STATUS
     };
 
     try {

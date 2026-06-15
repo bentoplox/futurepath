@@ -295,13 +295,31 @@ const StudentJobBoard = ({ onBack }) => {
 
                 <p style={{ color: '#374151', whiteSpace: 'pre-line', lineHeight: '1.7', fontSize: '15px' }}>{post.content}</p>
 
+                {/* POST IMAGE ATTACHMENT */}
+                {post.image_url && (
+                  <div style={{ marginTop: '20px', marginBottom: '15px' }}>
+                    <img src={post.image_url} alt="Post attachment" style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
+                  </div>
+                )}
+
+                {/* ⚡ NEW: Document Attachment Rendering */}
+                {post.file_url && (
+                  <div style={{ marginTop: '15px', padding: '12px 16px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '20px' }}>📄</span>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155' }}>Attached Document</span>
+                    </div>
+                    <a href={post.file_url} target="_blank" rel="noopener noreferrer" style={{ backgroundColor: 'white', color: '#4f46e5', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', textDecoration: 'none', transition: 'all 0.2s' }}>
+                      Download / View ↘
+                    </a>
+                  </div>
+                )}
+
                 {/* ACTION BUTTONS */}
-                <div style={{ marginTop: '25px', display: 'flex', gap: '15px', borderTop: '1px solid #f3f4f6', paddingTop: '20px' }}>
+                <div style={{ marginTop: '25px', display: 'flex', gap: '15px', borderTop: '1px solid #f3f4f6', paddingTop: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
                   {post.application_link && (
-                    <a href={post.application_link} target="_blank" rel="noopener noreferrer" style={{
-                      backgroundColor: '#4c2882', color: 'white', padding: '10px 20px', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '600', transition: 'background 0.2s'
-                    }}>
-                      {activeTab === 'jobs' ? 'Apply Now ↗' : 'View Link ↗'}
+                    <a href={post.application_link} target="_blank" rel="noopener noreferrer" style={{ backgroundColor: '#4c2882', color: 'white', padding: '10px 20px', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '600', display: 'inline-flex', alignItems: 'center' }}>
+                      Apply Now ↗
                     </a>
                   )}
 
