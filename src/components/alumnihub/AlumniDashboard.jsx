@@ -93,10 +93,10 @@ const AlumniDashboard = ({ user, onLogout }) => {
             current_role: savedCurrentRole,
             programme: savedProgram,
             internship_company: data.stats.internship_company || '',
+            internship_role: data.stats.internship_role || '',
             employer_name: data.stats.employer_name || '',
             job_title: data.stats.job_title || '',
             salary: data.stats.salary || '',
-            years_xp: data.stats.years_xp || '',
             show_workplace: savedShowWorkplace,
             is_public: data.stats.is_public ?? true
           });
@@ -163,7 +163,7 @@ const AlumniDashboard = ({ user, onLogout }) => {
   const fetchPosts = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://127.0.0.1:5000/api/discussion/all');
+      const res = await fetch(`http://127.0.0.1:5000/api/discussion/all?user_id=${activeUserId}`);
       const data = await res.json();
 
       if (data.success) {
