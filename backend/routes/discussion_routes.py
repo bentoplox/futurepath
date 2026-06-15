@@ -122,6 +122,33 @@ def delete_post(post_id):
         return jsonify({"success": False, "error": str(e)}), 500
     
 # ==========================================
+# 6. GET ALL POSTS (For Alumni Dashboard)
+# ==========================================
+@discussion_bp.route('/api/discussion/all', methods=['GET'])
+def get_all_discussions():
+    user_id = request.args.get('user_id')
+    try:
+        # ⚡ AUTHOR-AWARE VISIBILITY: 
+        # Show posts if status is 'approved' OR if the requester is the author
+        query = supabase.table('alumni_posts')\
+            .select('*, users!fk_alumni_posts_author(name, current_role, show_workplace)')
+        
+        if user_id:
+            res = query.or_(f"status.eq.approved,author_id.eq.{user_id}")\
+                .order('created_at', desc=True)\
+                .execute()
+        else:
+            res = query.eq('status', 'approved')\
+                .order('created_at', desc=True)\
+                .execute()
+            
+        return jsonify({"success": True, "posts": res.data})
+        
+    except Exception as e:
+        print("[DB ERROR] Failed to fetch all posts:", str(e))
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# ==========================================
 # 7. GET COMMENTS FOR POST
 # ==========================================
 @discussion_bp.route('/api/discussion/comments/<uuid:post_id>', methods=['GET'])
