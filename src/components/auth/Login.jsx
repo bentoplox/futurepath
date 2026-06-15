@@ -34,6 +34,7 @@ const Login = ({ onSwitchToRegister, onLoginSuccess, onBack }) => {
     }
 
     try {
+      localStorage.setItem('activeTab', 'dashboard'); // ⚡ Force routing hard reset
       await login(email, password);
       if (onLoginSuccess) onLoginSuccess();
     } catch (err) {

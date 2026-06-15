@@ -24,9 +24,18 @@ const AppContent = () => {
   const { user, loading, logout } = useAuth();
 
   // Navigation State
-  const [currentView, setCurrentView] = useState('dashboard');
+  const [currentView, setCurrentView] = useState(localStorage.getItem('activeTab') || 'dashboard');
   const [selectedCareerId, setSelectedCareerId] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
+
+  // ⚡ Enforce Default State Initialization (Hard reset to Home Dashboard upon auth)
+  React.useEffect(() => {
+    if (user) {
+      setCurrentView('dashboard');
+      localStorage.setItem('activeTab', 'dashboard');
+      setShowProfile(false); // ⚡ Ensure profile modal is closed on login
+    }
+  }, [user]);
 
   // Auth View State
   const [showLoginScreen, setShowLoginScreen] = useState(false);
