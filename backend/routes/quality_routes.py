@@ -58,65 +58,6 @@ def get_curriculum_tree():
         print(f"[ERROR] Fetching curriculum tree failed: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
-@quality_bp.route('/api/quality/feedback', methods=['POST'])
-def submit_feedback():
-    """Captures crowdsourced QA and Industry Suggestions from Students & Alumni"""
-    data = request.json
-    try:
-        payload = {
-            "user_id": data['user_id'],
-            "user_role": data['user_role'],
-            "target_type": data['target_type'],
-            "target_id": data.get('target_id'),
-            "target_name": data.get('target_name'),
-            "feedback_type": data['feedback_type'],
-            "suggested_alternative_text": data.get('suggested_alternative_text'),
-            "status": "pending"
-        }
-        
-        res = supabase.table('content_feedback').insert(payload).execute()
-        return jsonify({"success": True, "feedback": res.data[0]}), 201
-    except Exception as e:
-        print(f"[ERROR] Submitting feedback: {str(e)}")
-        return jsonify({"success": False, "error": str(e)}), 500
-
-@quality_bp.route('/api/admin/quality-control', methods=['GET'])
-def get_quality_control_dashboard():
-    """Fetches and splits feedback into Alumni Insights and Student QA Reports"""
-    try:
-        # Fetch pending feedback and join with users table to get the submitter's name
-        res = supabase.table('content_feedback')\
-            .select('*, users(name)')\
-            .eq('status', 'pending')\
-            .order('created_at', desc=True)\
-            .execute()
-            
-        all_feedback = res.data
-
-        # ⚡ ARCHITECTURAL SPLIT: Separate arrays for the Dual-Grid Admin UI
-        alumni_insights = []
-        student_reports = []
-
-        for item in all_feedback:
-            # Clean up the author name mapping
-            item['author_name'] = item.get('users', {}).get('name', 'Anonymous')
-            
-            if item['user_role'] == 'alumni':
-                alumni_insights.append(item)
-            elif item['user_role'] == 'student':
-                student_reports.append(item)
-
-        return jsonify({
-            "success": True, 
-            "data": {
-                "alumni_insights": alumni_insights,
-                "student_reports": student_reports
-            }
-        })
-    except Exception as e:
-        print(f"[ERROR] Fetching quality control data: {str(e)}")
-        return jsonify({"success": False, "error": str(e)}), 500
-
 @quality_bp.route('/api/admin/summary-stats', methods=['GET'])
 def get_admin_summary_stats():
     """Calculates aggregate metrics for the Dashboard Overview scorecard"""
@@ -157,13 +98,90 @@ def mark_all_feedback_reviewed():
     except Exception as e:
         print(f"[ERROR] Marking feedback reviewed: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
+    
+# ============================================================================
+# FILE: backend/routes/quality_routes.py (Refactored Blocks)
+# ============================================================================
+
+@quality_bp.route('/api/quality/feedback', methods=['POST'])
+def submit_feedback():
+    """Captures crowdsourced QA and Industry Suggestions from Students & Alumni"""
+    data = request.json
+    try:
+        payload = {
+            "user_id": data['user_id'],
+            "user_role": data['user_role'],
+            "target_type": data['target_type'],
+            "target_id": data.get('target_id'),
+            "target_name": data.get('target_name'),
+            "feedback_type": data['feedback_type'],
+            "suggested_alternative_text": data.get('suggested_alternative_text'),
+            # 1. FORCE STATUS INITIALIZATION
+            "status": "pending" 
+        }
+        
+        res = supabase.table('content_feedback').insert(payload).execute()
+        return jsonify({"success": True, "feedback": res.data[0]}), 201
+    except Exception as e:
+        print(f"[ERROR] Submitting feedback: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@quality_bp.route('/api/admin/quality-control', methods=['GET'])
+def get_quality_control_dashboard():
+    """Fetches ALL feedback and splits into Alumni Insights and Student QA Reports"""
+    try:
+        # 2. Fetch ALL feedback and filter out upvotes/downvotes
+        res = supabase.table('content_feedback')\
+            .select('*, users(name)')\
+            .neq('feedback_type', 'upvote')\
+            .neq('feedback_type', 'downvote')\
+            .order('created_at', desc=True)\
+            .execute()
+            
+        all_feedback = res.data
+
+        alumni_insights = []
+        student_reports = []
+
+        for item in all_feedback:
+            item['author_name'] = item.get('users', {}).get('name', 'Anonymous')
+            
+            if item['user_role'] == 'alumni':
+                alumni_insights.append(item)
+            elif item['user_role'] == 'student':
+                student_reports.append(item)
+
+        return jsonify({
+            "success": True, 
+            "data": {
+                "alumni_insights": alumni_insights,
+                "student_reports": student_reports
+            }
+        })
+    except Exception as e:
+        print(f"[ERROR] Fetching quality control data: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
 
 @quality_bp.route('/api/admin/quality-control/resolve/<int:feedback_id>', methods=['POST'])
 def resolve_feedback(feedback_id):
-    """Allows Admins to mark feedback as reviewed/implemented"""
-    action = request.json.get('action', 'reviewed') # 'implemented' or 'dismissed'
+    """Allows Admins to toggle feedback between pending and reviewed"""
+    action = request.json.get('action', 'reviewed') 
+    
+    print(f"[QC SYSTEM] Attempting to set feedback_id {feedback_id} to '{action}'")
+    
     try:
-        supabase.table('content_feedback').update({"status": action}).eq('feedback_id', feedback_id).execute()
+        # Perform the update
+        res = supabase.table('content_feedback').update({"status": action}).eq('feedback_id', feedback_id).execute()
+        
+        # If Supabase returns empty data, the row wasn't found/updated
+        if not res.data:
+            print(f"[QC SYSTEM] WARNING: Update failed. No row matched feedback_id {feedback_id}.")
+            return jsonify({"success": False, "error": "Database row not found."}), 404
+            
+        print(f"[QC SYSTEM] Success! Row updated.")
         return jsonify({"success": True})
     except Exception as e:
+        print(f"[QC SYSTEM] Error during update: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500

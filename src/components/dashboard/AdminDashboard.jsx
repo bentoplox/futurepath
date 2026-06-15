@@ -51,10 +51,6 @@ const AdminDashboard = ({ user, onLogout }) => {
   useEffect(() => {
     if (activeTab === 'analytics') setActiveSubTab('overview');
     if (activeTab === 'curriculum') setActiveSubTab('quizzes');
-    
-    if (activeTab === 'quality') {
-        markFeedbackAsReviewed();
-    }
   }, [activeTab]);
 
   const fetchData = async () => {
