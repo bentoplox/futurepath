@@ -8,6 +8,102 @@ from services.ai_service import get_ai_response, clean_json
 
 admin_bp = Blueprint('admin', __name__)
 
+@admin_bp.route('/api/admin/curriculum-health', methods=['GET'])
+def get_curriculum_health():
+    """Identifies cohort distress points (average scores < 50%) for the dashboard overview."""
+    try:
+        # 1. Fetch deep heatmap data using existing logic
+        links_res = supabase.table('roadmap_step').select('skill_id, skill(skill_name)').execute()
+        results_res = supabase.table('quiz_result').select('score, skill_id, users(academic_year)').execute()
+        
+        aggregation = {}
+        for link in links_res.data:
+            s = link.get('skill')
+            if not s: continue
+            sid = link['skill_id']
+            if sid not in aggregation:
+                aggregation[sid] = {"name": s['skill_name'], "y1":[], "y2":[], "y3":[], "y4":[]}
+
+        for item in results_res.data:
+            u = item.get('users')
+            if not u or not u.get('academic_year'): continue
+            raw_year = str(u['academic_year']).lower().replace('year', '').strip()
+            if raw_year in ['1', '2', '3', '4']:
+                year_key = f"y{raw_year}"
+                if item['skill_id'] in aggregation:
+                    aggregation[item['skill_id']][year_key].append(item['score'])
+
+        # 2. Extract alerts where average is < 50
+        cohort_alerts = {
+            "Year 1": {"count": 0, "skills": [], "label": "Core Fundamentals"},
+            "Year 2": {"count": 0, "skills": [], "label": "Intermediate Stack"},
+            "Year 3": {"count": 0, "skills": [], "label": "Advanced Engineering"},
+            "Year 4": {"count": 0, "skills": [], "label": "Specialized Track"}
+        }
+
+        for sid, data in aggregation.items():
+            for y in [1, 2, 3, 4]:
+                scores = data[f"y{y}"]
+                if scores:
+                    avg = sum(scores) / len(scores)
+                    if avg < 50:
+                        year_label = f"Year {y}"
+                        cohort_alerts[year_label]["count"] += 1
+                        cohort_alerts[year_label]["skills"].append(data["name"])
+
+        # Format for frontend
+        final_alerts = []
+        for year, info in cohort_alerts.items():
+            final_alerts.append({
+                "year": year,
+                "count": info["count"],
+                "label": info["label"],
+                "skills": ", ".join(info["skills"][:2]) + ("..." if len(info["skills"]) > 2 else "") if info["skills"] else "None"
+            })
+
+        return jsonify({"success": True, "alerts": final_alerts})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@admin_bp.route('/api/admin/asset-coverage', methods=['GET'])
+def get_asset_coverage():
+    """Calculates internal educational inventory depth."""
+    try:
+        # 1. Roadmaps & Drafts
+        r_res = supabase.table('career').select('status').execute()
+        total_paths = len([r for r in r_res.data if r['status'] == 'published'])
+        total_drafts = len([r for r in r_res.data if r['status'] == 'draft'])
+        
+        # 2. Resources
+        res_count = supabase.table('verified_resources').select('*', count='exact', head=True).execute()
+        
+        # 3. Coverage Matrix (Skills with Resources)
+        skills_res = supabase.table('skill').select('skill_id, concept_tag').execute()
+        resources_res = supabase.table('verified_resources').select('concept_tag').execute()
+        
+        covered_tags = set([r['concept_tag'] for r in resources_res.data if r.get('concept_tag')])
+        covered_count = 0
+        for s in skills_res.data:
+            if s.get('concept_tag') in covered_tags:
+                covered_count += 1
+        
+        total_skills = len(skills_res.data)
+        coverage_pct = round((covered_count / total_skills * 100)) if total_skills > 0 else 0
+
+        return jsonify({
+            "success": True,
+            "data": {
+                "paths": total_paths,
+                "drafts": total_drafts,
+                "resources": res_count.count or 0,
+                "coverage_pct": coverage_pct,
+                "covered_skills": covered_count,
+                "total_skills": total_skills
+            }
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @admin_bp.route('/api/admin/sync', methods=['POST'])
 def admin_sync_content():
     try:

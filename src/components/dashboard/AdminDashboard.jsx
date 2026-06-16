@@ -26,6 +26,10 @@ const AdminDashboard = ({ user, onLogout }) => {
     unread_alumni_insights: 0,
     unread_student_reports: 0
   });
+  const [healthStats, setHealthStats] = useState({
+    alerts: [],
+    coverage: { paths: 0, drafts: 0, resources: 0, coverage_pct: 0, covered_skills: 0, total_skills: 0 }
+  });
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('matrix'); 
   const [skillHeatmapData, setSkillHeatmapData] = useState([]);
@@ -50,7 +54,7 @@ const AdminDashboard = ({ user, onLogout }) => {
   // Reset sub-tab when main tab changes
   useEffect(() => {
     if (activeTab === 'analytics') setActiveSubTab('overview');
-    if (activeTab === 'curriculum') setActiveSubTab('quizzes');
+    if (activeTab === 'curriculum') setActiveSubTab('pathways'); 
   }, [activeTab]);
 
   const fetchData = async () => {
@@ -59,7 +63,6 @@ const AdminDashboard = ({ user, onLogout }) => {
         const { count: sCount } = await supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'student');
         const { count: aCount } = await supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'alumni');
         
-        // ⚡ RESTORED: Direct Supabase query for pending moderation queue
         const { data: pData, error: pError } = await supabase
             .from('alumni_posts')
             .select('*, users!fk_alumni_posts_author(name, role, show_workplace, current_role)')
@@ -77,11 +80,21 @@ const AdminDashboard = ({ user, onLogout }) => {
         const hRes = await fetch('http://127.0.0.1:5000/api/admin/heatmap');
         const hData = await hRes.json();
 
-        // Summary Stats via API (Transactional logic is better on Flask)
         const sRes = await fetch('http://127.0.0.1:5000/api/admin/summary-stats');
         const sData = await sRes.json();
 
+        const healthRes = await fetch('http://127.0.0.1:5000/api/admin/curriculum-health');
+        const healthData = await healthRes.json();
+        const assetRes = await fetch('http://127.0.0.1:5000/api/admin/asset-coverage');
+        const assetData = await assetRes.json();
+
         if (sData.success) setSummaryStats(sData.stats);
+        if (healthData.success && assetData.success) {
+          setHealthStats({
+            alerts: healthData.alerts || [],
+            coverage: assetData.data
+          });
+        }
         
         setGeData(gData || []);
         if (fData.success) setFeedback(fData.reports || []);
@@ -102,7 +115,6 @@ const AdminDashboard = ({ user, onLogout }) => {
   const updateStatus = async (postId, newStatus) => {
     if (!window.confirm(`Mark as ${newStatus}?`)) return;
     try {
-        // Use Flask API for status update to ensure split logic consistency
         const res = await fetch('http://127.0.0.1:5000/api/admin/moderate-post', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -272,6 +284,99 @@ const AdminDashboard = ({ user, onLogout }) => {
                         <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.8px' }}>Student Reports</div>
                         <div style={{ fontSize: '34px', fontWeight: '800', color: theme.danger.text }}>{summaryStats.unread_student_reports}</div>
                     </div>
+                 </div>
+
+                 {/* --- TWO-COLUMN COMPREHENSIVE CONTROL SYSTEM OVERVIEW GRID --- */}
+                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginTop: '30px', alignItems: 'stretch' }}>
+                    
+                    {/* LEFT COLUMN: COHORT LEVEL RISK ALERTS */}
+                    <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '30px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                            <span style={{ fontSize: '22px' }}>🚨</span>
+                            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#1e293b' }}>Cohort Curriculum Distress Points</h3>
+                        </div>
+                        <p style={{ color: '#64748b', fontSize: '14px', margin: '-10px 0 25px 0', fontWeight: '500' }}>
+                            Identified modules where student evaluations currently track **below 50%**.
+                        </p>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', flex: 1 }}>
+                            {healthStats.alerts.map((alert, idx) => (
+                                <div key={idx} style={{ backgroundColor: '#f8fafc', borderRadius: '14px', padding: '20px', border: '1px solid #e2e8f0', borderLeft: `5px solid ${alert.count > 1 ? theme.danger.text : (alert.count === 1 ? theme.warning.text : '#e2e8f0')}` }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                        <span style={{ fontWeight: '800', fontSize: '15px', color: '#334155' }}>{alert.year}</span>
+                                        <span style={{ 
+                                          backgroundColor: alert.count > 1 ? theme.danger.bg : (alert.count === 1 ? theme.warning.bg : '#f1f5f9'), 
+                                          color: alert.count > 1 ? theme.danger.text : (alert.count === 1 ? theme.warning.text : '#94a3b8'), 
+                                          padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '800' 
+                                        }}>
+                                            {alert.count} Critical Gaps
+                                        </span>
+                                    </div>
+                                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.3px' }}>{alert.label}</div>
+                                    <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5', fontWeight: '600' }}>
+                                        {alert.count > 0 ? <>⚠️ <span style={{ fontStyle: 'italic' }}>{alert.skills}</span></> : '✅ No Gaps Detected'}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* RIGHT COLUMN: CORE ASSET DEPTH REGISTER */}
+                    <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '30px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '25px' }}>
+                            <span style={{ fontSize: '22px' }}>🏗️</span>
+                            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#1e293b' }}>Curriculum Asset Coverage</h3>
+                        </div>
+
+                        {/* ⚡ SYNCHRONIZED FLEXBOX CONTAINER FOR PERFECTLY BALANCED ROW DISTRIBUTIONS */}
+                        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
+                            
+                            {/* Row 1: Roadmaps */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '15px', borderBottom: '1px solid #f1f5f9' }}>
+                                <div>
+                                    <div style={{ fontSize: '15px', fontWeight: '800', color: '#334155' }}>Career Roadmaps</div>
+                                    <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>Active pipelines structural maps</div>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <div style={{ fontSize: '18px', fontWeight: '800', color: brandPurple }}>{healthStats.coverage.paths} Paths</div>
+                                    <div style={{ fontSize: '12px', color: healthStats.coverage.drafts > 0 ? theme.warning.text : '#10b981', fontWeight: '700' }}>
+                                      ● {healthStats.coverage.drafts} Drafts Pending
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Row 2: Resources */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '15px', borderBottom: '1px solid #f1f5f9' }}>
+                                <div>
+                                    <div style={{ fontSize: '15px', fontWeight: '800', color: '#334155' }}>Verified Learning Resources</div>
+                                    <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>Curated textbook/video material catalog</div>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <div style={{ fontSize: '18px', fontWeight: '800', color: umBlue }}>{healthStats.coverage.resources} Resources</div>
+                                    <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Multi-provider library</div>
+                                </div>
+                            </div>
+
+                            {/* Row 3: Matrix Skill Bar */}
+                            <div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                    <div>
+                                        <div style={{ fontSize: '15px', fontWeight: '800', color: '#334155' }}>Resource Coverage Matrix</div>
+                                        <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>Percentage of active concepts containing materials</div>
+                                    </div>
+                                    <div style={{ fontSize: '18px', fontWeight: '800', color: '#10b981' }}>{healthStats.coverage.coverage_pct}%</div>
+                                </div>
+                                <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                                    <div style={{ width: `${healthStats.coverage.coverage_pct}%`, height: '100%', backgroundColor: '#10b981', borderRadius: '4px', transition: 'width 0.5s' }}></div>
+                                </div>
+                                <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '700', marginTop: '8px', textAlign: 'right' }}>
+                                    {healthStats.coverage.covered_skills} out of {healthStats.coverage.total_skills} Core Skills Fully Covered
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
                  </div>
               </div>
             )}
