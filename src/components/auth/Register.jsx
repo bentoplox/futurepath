@@ -36,7 +36,7 @@ const Register = ({ onSwitchToLogin, initialRole = 'student', onBack }) => {
     try {
       if (!name || !email || !password || !confirmPassword) throw new Error('Please fill in all mandatory fields.');
       if (password !== confirmPassword) throw new Error('Passwords do not match.');
-      if (password.length < 6) throw new Error('Password must be at least 6 characters long.');
+      if (password.length < 8) throw new Error('Password must be at least 8 characters long.');
 
       if (role === 'student' && !email.endsWith('@siswa.um.edu.my')) {
         throw new Error('Student email must end with @siswa.um.edu.my');
@@ -181,7 +181,7 @@ const Register = ({ onSwitchToLogin, initialRole = 'student', onBack }) => {
             <div>
               <label style={{ display: 'block', marginBottom: '6px', color: '#334155', fontSize: '13px', fontWeight: '700' }}>Password</label>
               <div style={{ position: 'relative' }}>
-                <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" 
+                <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" 
                   style={{ width: '100%', padding: '14px', paddingRight: '40px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none', backgroundColor: '#f8fafc', boxSizing: 'border-box' }} 
                   onFocus={(e) => { e.target.style.borderColor = themeColor; e.target.style.backgroundColor = 'white'; }}
                   onBlur={(e) => { e.target.style.borderColor = '#cbd5e1'; e.target.style.backgroundColor = '#f8fafc'; }}

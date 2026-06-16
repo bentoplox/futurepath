@@ -78,12 +78,12 @@ const Login = ({ onSwitchToRegister, onLoginSuccess, onBack }) => {
 
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', color: '#334155', fontSize: '13px', fontWeight: '700' }}>University Email</label>
+              <label style={{ display: 'block', marginBottom: '8px', color: '#334155', fontSize: '13px', fontWeight: '700' }}>Email</label>
               <input 
                 type="email" 
                 value={email} 
                 onChange={(e) => setEmail(e.target.value)} 
-                placeholder="e.g., wif220000@siswa.um.edu.my" 
+                placeholder="e.g., 22002345@siswa.um.edu.my" 
                 style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '15px', outline: 'none', transition: 'border-color 0.2s', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
                 onFocus={(e) => { e.target.style.borderColor = fpPurple; e.target.style.backgroundColor = 'white'; }}
                 onBlur={(e) => { e.target.style.borderColor = '#cbd5e1'; e.target.style.backgroundColor = '#f8fafc'; }}
