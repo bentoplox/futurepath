@@ -218,7 +218,7 @@ const AdminDashboard = ({ user, onLogout }) => {
               { id: 'analytics', label: '📊 Executive Analytics' },
               { id: 'curriculum', label: '🛠️ Curriculum Builder' },
               { id: 'quality', label: '⚖️ Quality Control' },
-              { id: 'moderation', label: `📬 Post Moderation ${summaryStats.pending_moderation > 0 ? `(${summaryStats.pending_moderation})` : ''}` }
+              { id: 'moderation', label: `📬 Job Screening ${summaryStats.pending_moderation > 0 ? `(${summaryStats.pending_moderation})` : ''}` }
             ].map((tab) => (
               <button 
                   key={tab.id}
