@@ -204,7 +204,7 @@ const AdminDashboard = ({ user, onLogout }) => {
           <h1 style={{ fontSize: '48px', margin: '0 0 10px 0', fontWeight: '800', letterSpacing: '-1px' }}>
             {activeTab === 'analytics' ? 'Executive Analytics' : 
              activeTab === 'curriculum' ? 'Curriculum Builder' : 
-             activeTab === 'quality' ? 'Quality Control' : 'Post Moderation'}
+             activeTab === 'quality' ? 'Quality Control' : 'Screen Job Recruitments'}
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '16px', fontWeight: '500', marginBottom: '40px' }}>
             {activeTab === 'analytics' ? 'Real-time cohort telemetry and AI-driven curriculum intervention insights.' : 
