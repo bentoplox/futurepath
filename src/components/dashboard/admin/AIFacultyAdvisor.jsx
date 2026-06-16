@@ -25,6 +25,84 @@ const AIFacultyAdvisor = ({ recommendations, setRecommendations }) => {
   const umBlue = '#1e3a8a';
   const umLightBlue = '#2563eb';
 
+  const downloadReport = () => {
+    if (!recommendations || recommendations.length === 0) return;
+    
+    const reportWindow = window.open('', '_blank');
+    const today = new Date().toLocaleDateString();
+
+    const reportHtml = `
+      <html>
+        <head>
+          <title>FuturePath AI Advisor Report</title>
+          <style>
+            body { font-family: 'Aeonik', 'Segoe UI', sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; }
+            .header { border-bottom: 3px solid #1e3a8a; padding-bottom: 20px; marginBottom: 40px; display: flex; justify-content: space-between; align-items: flex-end; }
+            .logo { font-size: 24px; fontWeight: 900; color: #1e3a8a; }
+            .meta { text-align: right; font-size: 14px; color: #64748b; }
+            h1 { margin: 0; font-size: 28px; }
+            .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 25px; margin-bottom: 25px; page-break-inside: avoid; }
+            .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; }
+            .high { background: #fee2e2; color: #991b1b; }
+            .medium { background: #ffedd5; color: #9a3412; }
+            .title { font-size: 20px; font-weight: 800; color: #1e3a8a; margin: 0 0 10px 0; }
+            .track { font-weight: 700; color: #64748b; font-size: 14px; margin-bottom: 15px; }
+            .justification { font-style: italic; color: #475569; margin-bottom: 20px; }
+            .agenda-box { background: white; padding: 15px; border-radius: 8px; border: 1px solid #edf2f7; }
+            .agenda-title { font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 10px; }
+            ul { margin: 0; padding-left: 20px; }
+            li { margin-bottom: 5px; font-size: 14px; }
+            .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+            @media print {
+              body { padding: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <div class="logo">FUTUREPATH</div>
+              <h1>AI Curriculum Intervention Report</h1>
+            </div>
+            <div class="meta">
+              Generated on: ${today}<br>
+              Target Institution: FSKTM Universiti Malaya
+            </div>
+          </div>
+
+          <p style="margin: 30px 0;">This report summarizes AI-driven interventions based on live cohort telemetry and qualitative student feedback. The following 9 workshops and hackathons are recommended for immediate scheduling.</p>
+
+          ${recommendations.map((rec, idx) => `
+            <div class="card">
+              <div class="badge ${rec.urgency_level.toLowerCase()}">${rec.urgency_level} Urgency</div>
+              <div class="title">${idx + 1}. ${rec.title}</div>
+              <div class="track">📍 Target Track: ${rec.target_track}</div>
+              <div class="justification">"${rec.justification}"</div>
+              <div class="agenda-box">
+                <div class="agenda-title">Proposed Learning Agenda</div>
+                <ul>
+                  ${rec.agenda.map(item => `<li>${item}</li>`).join('')}
+                </ul>
+              </div>
+            </div>
+          `).join('')}
+
+          <div class="footer">
+            &copy; 2026 FuturePath Intelligent Career Systems. All rights reserved.
+          </div>
+          
+          <div class="no-print" style="position: fixed; top: 20px; right: 20px;">
+            <button onclick="window.print()" style="padding: 10px 20px; background: #1e3a8a; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">🖨️ Print / Save as PDF</button>
+          </div>
+        </body>
+      </html>
+    `;
+
+    reportWindow.document.write(reportHtml);
+    reportWindow.document.close();
+  };
+
   if (loading) {
     return (
       <div style={{ 
@@ -97,24 +175,44 @@ const AIFacultyAdvisor = ({ recommendations, setRecommendations }) => {
           </div>
         </div>
         {recommendations.length > 0 && (
-            <button 
-                onClick={fetchRecommendations}
-                style={{ 
-                    background: '#f8fafc', 
-                    border: '1px solid #e2e8f0', 
-                    padding: '8px 16px', 
-                    borderRadius: '10px', 
-                    fontSize: '13px', 
-                    fontWeight: '700', 
-                    color: umBlue,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                }}
-            >
-                🔄 Refresh Analysis
-            </button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+                <button 
+                    onClick={downloadReport}
+                    style={{ 
+                        background: '#f8fafc', 
+                        border: '1px solid #e2e8f0', 
+                        padding: '8px 16px', 
+                        borderRadius: '10px', 
+                        fontSize: '13px', 
+                        fontWeight: '700', 
+                        color: '#475569',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}
+                >
+                    📥 Download Report
+                </button>
+                <button 
+                    onClick={fetchRecommendations}
+                    style={{ 
+                        background: '#f8fafc', 
+                        border: '1px solid #e2e8f0', 
+                        padding: '8px 16px', 
+                        borderRadius: '10px', 
+                        fontSize: '13px', 
+                        fontWeight: '700', 
+                        color: umBlue,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}
+                >
+                    🔄 Refresh Analysis
+                </button>
+            </div>
         )}
       </div>
 
