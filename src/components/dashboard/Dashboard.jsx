@@ -13,7 +13,7 @@ const Dashboard = ({ onContinueRoadmap, onStartNew }) => {
   const [stats, setStats] = useState({ total_skills: 0, total_paths: 0 });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+useEffect(() => {
     if (!user?.user_id) return;
 
     const fetchDashboard = async () => {
@@ -24,30 +24,14 @@ const Dashboard = ({ onContinueRoadmap, onStartNew }) => {
 
         if (data.success) {
             const allRoadmaps = data.roadmaps || [];
+            
+            // Filter out completed roadmaps for the active section
             const active = allRoadmaps.filter(r => r.status !== 'completed');
             
-            const activeWithDetails = await Promise.all(active.map(async (r) => {
-                try {
-                    const detailRes = await fetch(`http://127.0.0.1:5000/api/roadmap/${r.career_id}?user_id=${user.user_id}`);
-                    const detailData = await detailRes.json();
-                    
-                    if (detailData.success) {
-                        return {
-                            ...r,
-                            detailed_steps: detailData.steps || [],
-                            completed_steps: detailData.completed_steps || [],
-                            is_eligible: detailData.is_eligible_for_quiz
-                        };
-                    }
-                } catch (e) {
-                    console.error("Failed to fetch roadmap details", e);
-                }
-                return r; 
-            }));
+            // Sort active roadmaps by highest progress percentage
+            active.sort((a, b) => (b.progress_percent || 0) - (a.progress_percent || 0));
 
-            activeWithDetails.sort((a, b) => (b.progress_percent || 0) - (a.progress_percent || 0));
-
-            setActiveRoadmaps(activeWithDetails);
+            setActiveRoadmaps(active);
             setCompletedRoadmaps(allRoadmaps.filter(r => r.status === 'completed'));
             setStats(data.stats || { total_skills: 0, total_paths: 0 });
         }
@@ -230,12 +214,28 @@ const Dashboard = ({ onContinueRoadmap, onStartNew }) => {
               const steps = item.detailed_steps || [];
               const completedSet = new Set(item.completed_steps || []);
               
-              const nodes = steps.map((s, idx) => ({
-                  id: s.step_id,
-                  label: s.skill?.skill_name || `Module ${idx + 1}`,
-                  isCompleted: completedSet.has(s.step_id),
-                  order: s.step_order || idx + 1
-              }));
+              // ⚡ ROBUST FALLBACK: Calculate eligibility and steps from main dashboard stats if details fetch failed
+              const isEligible = item.is_eligible !== undefined ? item.is_eligible : (item.progress_percent === 100);
+              
+              let nodes = [];
+              if (steps.length > 0) {
+                  nodes = steps.map((s, idx) => ({
+                      id: s.step_id,
+                      label: s.skill?.skill_name || `Module ${idx + 1}`,
+                      isCompleted: completedSet.has(s.step_id),
+                      order: s.step_order || idx + 1
+                  }));
+              } else if (item.total_steps > 0) {
+                  // Fallback track nodes
+                  for (let i = 0; i < item.total_steps; i++) {
+                      nodes.push({
+                          id: `fallback-${i}`,
+                          label: `Module ${i + 1}`,
+                          isCompleted: i < item.completed_steps_count,
+                          order: i + 1
+                      });
+                  }
+              }
 
               // Append Capstone
               nodes.push({
@@ -243,7 +243,7 @@ const Dashboard = ({ onContinueRoadmap, onStartNew }) => {
                   label: 'Certification',
                   isCapstone: true,
                   isCompleted: false, 
-                  isEligible: item.is_eligible
+                  isEligible: isEligible
               });
 
               const firstIncompleteIdx = nodes.findIndex(n => !n.isCompleted && !n.isCapstone);
@@ -319,13 +319,13 @@ const Dashboard = ({ onContinueRoadmap, onStartNew }) => {
                     <button 
                       onClick={() => onContinueRoadmap(item.career_id)}
                       style={{ 
-                        backgroundColor: item.is_eligible ? '#f59e0b' : '#4f46e5', 
+                        backgroundColor: isEligible ? '#f59e0b' : '#4f46e5', 
                         color: 'white', border: 'none', padding: '12px 28px', borderRadius: '8px', 
                         fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.2s', 
-                        boxShadow: item.is_eligible ? '0 4px 10px rgba(245, 158, 11, 0.3)' : '0 4px 6px rgba(79, 70, 229, 0.2)' 
+                        boxShadow: isEligible ? '0 4px 10px rgba(245, 158, 11, 0.3)' : '0 4px 6px rgba(79, 70, 229, 0.2)' 
                       }}
                     >
-                      {item.is_eligible ? 'Take Capstone Quiz 🚀' : 'Continue Learning →'}
+                      {isEligible ? 'Take Capstone Quiz 🚀' : 'Continue Learning →'}
                     </button>
                   </div>
                 </div>

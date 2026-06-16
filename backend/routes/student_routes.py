@@ -232,11 +232,23 @@ def get_user_dashboard(user_id):
         
         for rm in roadmaps:
             c_id = rm['career_id']
-            steps_res = supabase.table('roadmap_step').select('step_id').eq('career_id', c_id).execute()
-            step_ids = [s['step_id'] for s in steps_res.data]
-            completed_res = supabase.table('progress_record').select('step_id').eq('user_id', user_id).in_('step_id', step_ids).eq('completion_status', 'completed').execute()
+            # Fetch steps and skill names directly in this loop
+            steps_res = supabase.table('roadmap_step').select('step_id, step_order, skill(skill_id, skill_name)').eq('career_id', c_id).order('step_order').execute()
+            rm['detailed_steps'] = steps_res.data
             
-            rm['progress_percent'] = round((len(completed_res.data) / len(step_ids) * 100)) if step_ids else 0
+            step_ids = [s['step_id'] for s in steps_res.data]
+            if step_ids:
+                completed_res = supabase.table('progress_record').select('step_id').eq('user_id', user_id).in_('step_id', step_ids).eq('completion_status', 'completed').execute()
+                rm['completed_steps'] = [p['step_id'] for p in completed_res.data]
+                rm['progress_percent'] = round((len(completed_res.data) / len(step_ids) * 100))
+                
+                # Eligibility check
+                rm['is_eligible'] = (len(rm['completed_steps']) == len(step_ids) and rm['status'] != 'completed')
+            else:
+                rm['completed_steps'] = []
+                rm['progress_percent'] = 0
+                rm['is_eligible'] = False
+            
             rm['is_certified'] = (rm['status'] == 'completed')
 
         return jsonify({
