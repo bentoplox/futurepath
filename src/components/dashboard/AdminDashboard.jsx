@@ -243,10 +243,10 @@ const AdminDashboard = ({ user, onLogout }) => {
         {activeTab === 'analytics' && (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {renderSubNav([
-              { id: 'overview', label: '📊 Dashboard Overview' },
-              { id: 'advisor', label: '✨ AI Curriculum Advisor' },
-              { id: 'heatmap', label: '🔥 Skills Gap Heatmap' },
-              { id: 'tracer', label: '📈 SKPG Graduate Tracer' }
+              { id: 'overview', label: ' Dashboard Overview' },
+              { id: 'heatmap', label: ' Skills Gap Heatmap' },
+              { id: 'advisor', label: ' AI Curriculum Advisor' },
+              { id: 'tracer', label: ' SKPG Graduate Tracer' }
             ])}
 
             {activeSubTab === 'overview' && (
@@ -337,7 +337,7 @@ const AdminDashboard = ({ user, onLogout }) => {
 
         {activeTab === 'curriculum' && (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {renderSubNav([{ id: 'quizzes', label: '📖 Quiz Manager' }, { id: 'resources', label: '📚 Resource Library' }, { id: 'pathways', label: '🛤️ Learning Pathways' }])}
+            {renderSubNav([{ id: 'pathways', label: '🛤️ Learning Pathways' }, { id: 'resources', label: '📚 Resource Library' }, { id: 'quizzes', label: '📖 Quiz Manager' }])}
             {activeSubTab === 'quizzes' && <QuizManager umBlue={umBlue} umLightBlue={umLightBlue} umGold={umGold} />}
             {activeSubTab === 'resources' && <ResourceManager supabase={supabase} umBlue={umBlue} umLightBlue={umLightBlue} umGold={umGold} />}
             {activeSubTab === 'pathways' && (
