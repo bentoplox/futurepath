@@ -131,9 +131,9 @@ def submit_feedback():
 def get_quality_control_dashboard():
     """Fetches ALL feedback and splits into Alumni Insights and Student QA Reports"""
     try:
-        # 2. Fetch ALL feedback and filter out upvotes/downvotes
+        # 1. Update the .select() to grab current_role and show_workplace
         res = supabase.table('content_feedback')\
-            .select('*, users(name)')\
+            .select('*, users(name, current_role, show_workplace)')\
             .neq('feedback_type', 'upvote')\
             .neq('feedback_type', 'downvote')\
             .order('created_at', desc=True)\
@@ -145,7 +145,13 @@ def get_quality_control_dashboard():
         student_reports = []
 
         for item in all_feedback:
-            item['author_name'] = item.get('users', {}).get('name', 'Anonymous')
+            # Safely extract user data
+            user_data = item.get('users', {}) or {}
+            
+            # 2. Attach the new fields directly to the item for the frontend
+            item['author_name'] = user_data.get('name', 'Anonymous')
+            item['author_role'] = user_data.get('current_role', '')
+            item['show_workplace'] = user_data.get('show_workplace', False)
             
             if item['user_role'] == 'alumni':
                 alumni_insights.append(item)
