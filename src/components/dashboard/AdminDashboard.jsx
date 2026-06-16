@@ -413,7 +413,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                                                       title={`📊 ${attemptCount} students attempted this quiz`}
                                                       style={{ background: getHeatmapColor(score), color: getHeatmapTextColor(score), padding: '18px', textAlign: 'center', fontWeight: '800', fontSize: '14px', cursor: 'help', fontFamily: fontStack }}
                                                     >
-                                                      {score === 0 ? '-' : `${score}%`}
+                                                      {attemptCount === 0 ? '-' : `${score}%`}
                                                     </div>
                                                   );
                                               })}

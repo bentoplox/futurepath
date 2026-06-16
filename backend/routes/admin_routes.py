@@ -172,6 +172,7 @@ def get_heatmap_data():
             for y in ["y1", "y2", "y3", "y4"]:
                 scores = data[y]
                 row[y] = round(sum(scores) / len(scores)) if scores else 0
+                row[f"{y}_count"] = len(scores) # ⚡ NEW: Return actual attempt count
             final.append(row)
         return jsonify({"success": True, "heatmap": final})
     except Exception as e:
