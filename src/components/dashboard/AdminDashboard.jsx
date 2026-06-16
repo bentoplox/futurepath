@@ -210,7 +210,7 @@ const AdminDashboard = ({ user, onLogout }) => {
             {activeTab === 'analytics' ? 'Real-time cohort telemetry and AI-driven curriculum intervention insights.' : 
              activeTab === 'curriculum' ? 'Manage assessment banks, verified resources, and architect learning pathways.' : 
              activeTab === 'quality' ? 'Monitor student feedback, bug reports, and crowdsourced content validation.' : 
-             'Review and approve alumni community contributions and networking opportunities.'}
+             'Review and approve alumni job posting opportunities.'}
           </p>
 
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
@@ -362,7 +362,7 @@ const AdminDashboard = ({ user, onLogout }) => {
         {activeTab === 'moderation' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1000px', margin: '0 auto' }}>
               <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '16px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #e2e8f0' }}>
-                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: brandPurple }}>Community Contribution Queue</h3>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: brandPurple }}>Full Time/Internship Opportunities Queue</h3>
                 <span style={{ backgroundColor: '#f1f5f9', color: '#64748b', padding: '6px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '700' }}>{posts.length} Pending Reviews</span>
               </div>
               {posts.map(post => (
