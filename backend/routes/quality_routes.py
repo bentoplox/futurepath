@@ -60,14 +60,18 @@ def get_curriculum_tree():
 
 @quality_bp.route('/api/admin/summary-stats', methods=['GET'])
 def get_admin_summary_stats():
-    """Calculates aggregate metrics for the Dashboard Overview scorecard"""
+    """Calculates aggregate metrics for the Dashboard Overview scorecard (Strict Pending Count)"""
     try:
         # 1. User counts by role
         s_res = supabase.table('users').select('*', count='exact', head=True).eq('role', 'student').execute()
         a_res = supabase.table('users').select('*', count='exact', head=True).eq('role', 'alumni').execute()
         
-        # 2. Pending alumni posts
-        p_res = supabase.table('alumni_posts').select('*', count='exact', head=True).eq('status', 'pending').execute()
+        # 2. ⚡ STRICT MODERATION QUEUE: Only count pending 'job' or 'internship' types
+        p_res = supabase.table('alumni_posts')\
+            .select('*', count='exact', head=True)\
+            .eq('status', 'pending')\
+            .in_('post_type', ['job', 'internship'])\
+            .execute()
         
         # 3. Unread feedback (Alumni Insights)
         fa_res = supabase.table('content_feedback').select('*', count='exact', head=True).eq('status', 'pending').eq('user_role', 'alumni').execute()
