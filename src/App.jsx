@@ -32,10 +32,14 @@ const AppContent = () => {
   React.useEffect(() => {
     if (user) {
       setCurrentView('dashboard');
-      localStorage.setItem('activeTab', 'dashboard');
       setShowProfile(false); // ⚡ Ensure profile modal is closed on login
     }
   }, [user]);
+
+  // ⚡ Sync Navigation State to LocalStorage (Ensures persistence and correct reset)
+  React.useEffect(() => {
+    localStorage.setItem('activeTab', currentView);
+  }, [currentView]);
 
   // Auth View State
   const [showLoginScreen, setShowLoginScreen] = useState(false);
