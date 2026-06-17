@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../apiConfig';
 import React, { useState, useEffect } from 'react';
 
 const ResourceManager = ({ supabase, umBlue, umLightBlue, umGold }) => {
@@ -18,14 +19,14 @@ const ResourceManager = ({ supabase, umBlue, umLightBlue, umGold }) => {
     useEffect(() => { fetchCareerSkills(); }, []);
 
     const fetchCareerSkills = async () => {
-        const res = await fetch('http://127.0.0.1:5000/api/admin/career-skills');
+        const res = await fetch(`${API_BASE_URL}/api/admin/career-skills`);
         const data = await res.json();
         if (data.success) setCareerMap(data.data);
     };
 
     const handlePublish = async (cId) => {
         if (!window.confirm("Make this career LIVE for all students?")) return;
-        const res = await fetch(`http://127.0.0.1:5000/api/admin/career/publish/${cId}`, { method: 'POST' });
+        const res = await fetch(`${API_BASE_URL}/api/admin/career/publish/${cId}`, { method: 'POST' });
         if (res.ok) { 
             alert("Published Successfully!"); 
             fetchCareerSkills();
@@ -35,7 +36,7 @@ const ResourceManager = ({ supabase, umBlue, umLightBlue, umGold }) => {
 
     const fetchVerified = async (tag) => {
         setLoadingRes(true);
-        const res = await fetch(`http://127.0.0.1:5000/api/admin/resources?tag=${tag}`);
+        const res = await fetch(`${API_BASE_URL}/api/admin/resources?tag=${tag}`);
         const data = await res.json();
         if (data.success) setVerifiedResources(data.resources);
         setLoadingRes(false);
@@ -44,7 +45,7 @@ const ResourceManager = ({ supabase, umBlue, umLightBlue, umGold }) => {
     const handleAdd = async (e) => {
         e.preventDefault();
         if (!selectedSkill) return;
-        await fetch('http://127.0.0.1:5000/api/admin/resources/add', {
+        await fetch(`${API_BASE_URL}/api/admin/resources/add`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...newRes, concept_tag: selectedSkill.concept_tag })
@@ -55,7 +56,7 @@ const ResourceManager = ({ supabase, umBlue, umLightBlue, umGold }) => {
 
     const handleAddSkill = async (e) => {
         e.preventDefault();
-        const res = await fetch('http://127.0.0.1:5000/api/admin/career/add-skill', {
+        const res = await fetch(`${API_BASE_URL}/api/admin/career/add-skill`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...newSkill, career_id: expandedCareer })
@@ -70,12 +71,12 @@ const ResourceManager = ({ supabase, umBlue, umLightBlue, umGold }) => {
 
     const handleDeleteSkill = async (skill) => {
         if (!window.confirm(`Delete "${skill.skill_name}"?`)) return;
-        const res = await fetch(`http://127.0.0.1:5000/api/admin/career/delete-skill?career_id=${expandedCareer}&skill_id=${skill.skill_id}&step_order=${skill.step_order}`, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE_URL}/api/admin/career/delete-skill?career_id=${expandedCareer}&skill_id=${skill.skill_id}&step_order=${skill.step_order}`, { method: 'DELETE' });
         if (res.ok) { setSelectedSkill(null); fetchCareerSkills(); }
     };
 
     const handleReorder = async (skill, direction) => {
-        await fetch('http://127.0.0.1:5000/api/admin/career/reorder-skill', {
+        await fetch(`${API_BASE_URL}/api/admin/career/reorder-skill`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ career_id: expandedCareer, skill_id: skill.skill_id, step_order: skill.step_order, direction })
@@ -203,7 +204,7 @@ const ResourceManager = ({ supabase, umBlue, umLightBlue, umGold }) => {
                                             <strong style={{ color: '#1e293b' }}>{res.title}</strong>
                                             <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '4px' }}>{res.provider} • <a href={res.url} target="_blank" rel="noreferrer" style={{ color: umLightBlue, fontWeight: '600' }}>Visit ↗</a></div>
                                         </div>
-                                        <button onClick={async () => { if (window.confirm("Remove?")) { await fetch(`http://127.0.0.1:5000/api/admin/resources/delete/${res.resource_id}`, { method: 'DELETE' }); fetchVerified(selectedSkill.concept_tag); } }} style={{ color: '#991b1b', border: 'none', background: 'none', fontWeight: '800', cursor: 'pointer', fontSize: '13px' }}>Remove</button>
+                                        <button onClick={async () => { if (window.confirm("Remove?")) { await fetch(`${API_BASE_URL}/api/admin/resources/delete/${res.resource_id}`, { method: 'DELETE' }); fetchVerified(selectedSkill.concept_tag); } }} style={{ color: '#991b1b', border: 'none', background: 'none', fontWeight: '800', cursor: 'pointer', fontSize: '13px' }}>Remove</button>
                                     </div>
                                 ))}
                             </div>

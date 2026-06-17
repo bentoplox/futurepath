@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../apiConfig';
 // ============================================================================
 // FILE: src/components/roadmap/SkillCard.jsx
 // PURPOSE: Matches new Gamified Card Design (Cleaned up Meta & Clickable Header)
@@ -27,7 +28,7 @@ const SkillCard = ({
     e.preventDefault();
     if (!user) return;
     try {
-        await fetch('http://127.0.0.1:5000/api/quality/feedback', {
+        await fetch(`${API_BASE_URL}/api/quality/feedback`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../apiConfig';
 // ============================================================================
 // FILE: src/components/roadmap/ResourceList.jsx
 // PURPOSE: Styled resource items matching the Gamified UI
@@ -17,7 +18,7 @@ const ResourceList = ({ resources }) => {
     if (!state) return;
 
     try {
-      await fetch('http://127.0.0.1:5000/api/quality/feedback', {
+      await fetch(`${API_BASE_URL}/api/quality/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

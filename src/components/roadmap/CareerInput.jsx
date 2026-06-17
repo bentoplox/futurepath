@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../apiConfig';
 // ============================================================================
 // FILE: src/components/roadmap/CareerInput.jsx
 // PURPOSE: DB-Driven Career Selection (FR4.1)
@@ -17,7 +18,7 @@ const CareerInput = ({ onCareerSelect }) => {
   useEffect(() => {
     const fetchCareers = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:5000/api/careers');
+        const response = await fetch(`${API_BASE_URL}/api/careers`);
         const data = await response.json();
         if (data.success) {
           setDbCareers(data.careers);
@@ -38,7 +39,7 @@ const CareerInput = ({ onCareerSelect }) => {
     setEnrolling(true);
     try {
       // Enroll the user in the database
-      await fetch('http://127.0.0.1:5000/api/enroll', {
+      await fetch(`${API_BASE_URL}/api/enroll`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: user.user_id, career_id: parseInt(careerId) })

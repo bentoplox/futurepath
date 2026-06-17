@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../apiConfig';
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '../../supabaseClient'; 
@@ -25,14 +26,14 @@ const EmployabilityDashboard = () => {
       setLoading(true);
       try {
         // ⚡ Rerouted to Flask for secure official stats fetching
-        const res = await fetch(`http://127.0.0.1:5000/api/market/stats?year=${selectedYear}`);
+        const res = await fetch(`${API_BASE_URL}/api/market/stats?year=${selectedYear}`);
         const data = await res.json();
         
         if (data.success) {
           setDbData(data.stats || []);
         }
 
-        const mRes = await fetch('http://127.0.0.1:5000/api/market/insights');
+        const mRes = await fetch(`${API_BASE_URL}/api/market/insights`);
         const mData = await mRes.json();
         if (mData.success) setMarketData(mData.insights);
 

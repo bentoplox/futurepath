@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../apiConfig';
 import React, { useState, useEffect } from 'react';
 
 const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
@@ -17,14 +18,14 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
     useEffect(() => { fetchCareerSkills(); }, []);
 
     const fetchCareerSkills = async () => {
-        const res = await fetch('http://127.0.0.1:5000/api/admin/career-skills');
+        const res = await fetch(`${API_BASE_URL}/api/admin/career-skills`);
         const data = await res.json();
         if (data.success) setCareerMap(data.data);
     };
 
     const handlePublish = async (cId) => {
         if (!window.confirm("Make this career LIVE for all students?")) return;
-        const res = await fetch(`http://127.0.0.1:5000/api/admin/career/publish/${cId}`, { method: 'POST' });
+        const res = await fetch(`${API_BASE_URL}/api/admin/career/publish/${cId}`, { method: 'POST' });
         if (res.ok) { 
             alert("Published Successfully!"); 
             fetchCareerSkills();
@@ -34,7 +35,7 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
 
     const fetchQuizzes = async (skillId) => {
         setLoadingQuizzes(true);
-        const res = await fetch(`http://127.0.0.1:5000/api/admin/quizzes?skill_id=${skillId}`);
+        const res = await fetch(`${API_BASE_URL}/api/admin/quizzes?skill_id=${skillId}`);
         const data = await res.json();
         if (data.success) setQuizzes(data.quizzes);
         setLoadingQuizzes(false);
@@ -42,7 +43,7 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
 
     const handleSave = async (e) => {
         e.preventDefault();
-        const res = await fetch('http://127.0.0.1:5000/api/admin/quizzes/save', {
+        const res = await fetch(`${API_BASE_URL}/api/admin/quizzes/save`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(editingQuiz)
@@ -55,7 +56,7 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
 
     const handleGenerateQuiz = async (skill) => {
         setGeneratingQuiz(true);
-        const res = await fetch('http://127.0.0.1:5000/api/admin/skill/generate-quiz', {
+        const res = await fetch(`${API_BASE_URL}/api/admin/skill/generate-quiz`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ skill_name: skill.skill_name })
@@ -66,7 +67,7 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
     };
 
     const saveApprovedQuiz = async () => {
-        const res = await fetch('http://127.0.0.1:5000/api/admin/skill/save-quizzes', {
+        const res = await fetch(`${API_BASE_URL}/api/admin/skill/save-quizzes`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ skill_id: selectedSkill.skill_id, questions: quizDraft })
@@ -76,7 +77,7 @@ const QuizManager = ({ umBlue, umLightBlue, umGold }) => {
 
     const handleDelete = async (id) => {
         if (!window.confirm("Delete this quiz question forever?")) return;
-        await fetch(`http://127.0.0.1:5000/api/admin/quizzes/delete/${id}`, { method: 'DELETE' });
+        await fetch(`${API_BASE_URL}/api/admin/quizzes/delete/${id}`, { method: 'DELETE' });
         fetchQuizzes(selectedSkill.skill_id);
     };
 

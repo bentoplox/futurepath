@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../apiConfig';
 import React, { useState, useEffect } from 'react';
 
 const CurationManager = ({ umBlue, umLightBlue }) => {
@@ -11,7 +12,7 @@ const CurationManager = ({ umBlue, umLightBlue }) => {
     const fetchLogs = async () => {
         setLoading(true);
         // We'll create this endpoint in admin_routes.py
-        const res = await fetch('http://127.0.0.1:5000/api/admin/curation/logs');
+        const res = await fetch(`${API_BASE_URL}/api/admin/curation/logs`);
         const data = await res.json();
         if (data.success) setLogs(data.logs);
         setLoading(false);

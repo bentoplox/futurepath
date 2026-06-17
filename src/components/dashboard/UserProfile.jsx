@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../apiConfig';
 // ============================================================================
 // FILE: src/components/dashboard/UserProfile.jsx
 // PURPOSE: Gamified User Profile with Centered Metrics & Clean Skills UI
@@ -18,7 +19,7 @@ const UserProfile = ({ user, onClose, logout }) => {
       setLoading(true);
       try {
         const uid = user.user_id || user.id;
-        const res = await fetch(`http://127.0.0.1:5000/api/user/profile/${uid}`);
+        const res = await fetch(`${API_BASE_URL}/api/user/profile/${uid}`);
         const data = await res.json();
 
         if (data.success) {

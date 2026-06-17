@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../apiConfig';
 // ============================================================================
 // FILE: src/components/dashboard/SkillGapInput.jsx
 // PURPOSE: Allow students to self-report missing skills (Premium UI)
@@ -21,7 +22,7 @@ const SkillGapInput = ({ user, onBack }) => {
     setLoading(true);
 
     try {
-      const res = await fetch('http://127.0.0.1:5000/api/user/skill-gap', {
+      const res = await fetch(`${API_BASE_URL}/api/user/skill-gap`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

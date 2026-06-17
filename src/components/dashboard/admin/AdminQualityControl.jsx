@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../apiConfig';
 import React, { useState, useEffect } from 'react';
 
 const AdminQualityControl = () => {
@@ -16,7 +17,7 @@ const AdminQualityControl = () => {
     const fetchQCData = async () => {
         setLoading(true);
         try {
-            const res = await fetch('http://127.0.0.1:5000/api/admin/quality-control');
+            const res = await fetch(`${API_BASE_URL}/api/admin/quality-control`);
             const json = await res.json();
             if (json.success) {
                 setAlumniInsights(json.data.alumni_insights || []);
@@ -31,7 +32,7 @@ const AdminQualityControl = () => {
     // ⚡ RESTORED WORKING RESOLVE FUNCTION FROM OLD CODE
     const handleResolve = async (id, action) => {
         try {
-            const res = await fetch(`http://127.0.0.1:5000/api/admin/quality-control/resolve/${id}`, {
+            const res = await fetch(`${API_BASE_URL}/api/admin/quality-control/resolve/${id}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action })

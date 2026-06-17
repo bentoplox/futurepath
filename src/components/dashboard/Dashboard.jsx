@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../apiConfig';
 // ============================================================================
 // FILE: src/components/dashboard/Dashboard.jsx
 // PURPOSE: Vector Mountain Hero + Stacked KPIs + Flawless Timeline Math
@@ -19,7 +20,7 @@ useEffect(() => {
     const fetchDashboard = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://127.0.0.1:5000/api/user/dashboard/${user.user_id}`);
+        const response = await fetch(`${API_BASE_URL}/api/user/dashboard/${user.user_id}`);
         const data = await response.json();
 
         if (data.success) {

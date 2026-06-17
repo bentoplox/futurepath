@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../apiConfig';
 import React, { useState } from 'react';
 
 const PathwayList = ({ skillHeatmapData, fetchData, umGold }) => {
@@ -10,7 +11,7 @@ const PathwayList = ({ skillHeatmapData, fetchData, umGold }) => {
 
     const handlePublish = async (c) => {
         if (!window.confirm(`Make ${c.career_name} live for all students?`)) return;
-        const res = await fetch(`http://127.0.0.1:5000/api/admin/career/publish/${c.career_id}`, { method: 'POST' });
+        const res = await fetch(`${API_BASE_URL}/api/admin/career/publish/${c.career_id}`, { method: 'POST' });
         if (res.ok) { 
             alert("Published Successfully!"); 
             fetchData();
@@ -20,7 +21,7 @@ const PathwayList = ({ skillHeatmapData, fetchData, umGold }) => {
 
     const handleDelete = async (c) => {
         if (!window.confirm(`Delete ${c.career_name} permanently? This will remove all student progress records for this path.`)) return;
-        const res = await fetch(`http://127.0.0.1:5000/api/admin/career/delete/${c.career_id}`, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE_URL}/api/admin/career/delete/${c.career_id}`, { method: 'DELETE' });
         if (res.ok) { alert("Pathway deleted."); fetchData(); }
     };
 

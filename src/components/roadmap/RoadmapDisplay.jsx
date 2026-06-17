@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../apiConfig';
 // ============================================================================
 // FILE: src/components/roadmap/RoadmapDisplay.jsx
 // PURPOSE: Gamified Roadmap Display with Fixed Timeline Math
@@ -33,7 +34,7 @@ const RoadmapDisplay = ({ careerId, onBack }) => {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const url = `http://127.0.0.1:5000/api/roadmap/${careerId}?user_id=${user.user_id}`;
+      const url = `${API_BASE_URL}/api/roadmap/${careerId}?user_id=${user.user_id}`;
       const response = await fetch(url);
       const data = await response.json();
 
@@ -68,7 +69,7 @@ const RoadmapDisplay = ({ careerId, onBack }) => {
 
       if (user) {
           try {
-              const res = await fetch('http://127.0.0.1:5000/api/progress', {
+              const res = await fetch(`${API_BASE_URL}/api/progress`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({

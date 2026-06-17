@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../apiConfig';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { styles } from '../../styles/styles';
@@ -30,7 +31,7 @@ const QuizModal = ({ skillId, careerId, onClose, onQuizPass }) => {
     });
 
     try {
-        await fetch('http://127.0.0.1:5000/api/quiz/vote', {
+        await fetch(`${API_BASE_URL}/api/quiz/vote`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -53,8 +54,8 @@ const QuizModal = ({ skillId, careerId, onClose, onQuizPass }) => {
       try {
         // ⚡ FETCH FROM APPROPRIATE ENDPOINT
         const url = isCapstone 
-            ? `http://127.0.0.1:5000/api/capstone/${careerId}`
-            : `http://127.0.0.1:5000/api/quiz/${skillId}`;
+            ? `${API_BASE_URL}/api/capstone/${careerId}`
+            : `${API_BASE_URL}/api/quiz/${skillId}`;
             
         const response = await fetch(url);
         const data = await response.json();
@@ -126,7 +127,7 @@ const QuizModal = ({ skillId, careerId, onClose, onQuizPass }) => {
     // ⚡ SMART GRADER INTEGRATION (Fixed bug: sending one unified payload)
     if (user) {
         try {
-            await fetch('http://127.0.0.1:5000/api/submit-quiz', {
+            await fetch(`${API_BASE_URL}/api/submit-quiz`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

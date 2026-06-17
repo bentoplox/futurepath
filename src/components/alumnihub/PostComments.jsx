@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../apiConfig';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { styles } from '../../styles/styles';
@@ -15,7 +16,7 @@ const PostComments = ({ postId, currentUser }) => {
   const fetchComments = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/discussion/comments/${postId}`);
+      const res = await fetch(`${API_BASE_URL}/api/discussion/comments/${postId}`);
       const data = await res.json();
       if (data.success) {
         setComments(data.comments || []);
@@ -32,7 +33,7 @@ const PostComments = ({ postId, currentUser }) => {
     const finalCommentText = replyingTo ? `@${replyingTo} ${newComment}` : newComment;
 
     try {
-      const res = await fetch('http://127.0.0.1:5000/api/discussion/comment', {
+      const res = await fetch(`${API_BASE_URL}/api/discussion/comment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

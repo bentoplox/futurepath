@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../apiConfig';
 import React, { useState } from 'react';
 
 const AIFacultyAdvisor = ({ recommendations, setRecommendations }) => {
@@ -8,7 +9,7 @@ const AIFacultyAdvisor = ({ recommendations, setRecommendations }) => {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch('http://127.0.0.1:5000/api/admin/ai-workshop-recommendations');
+      const res = await fetch(`${API_BASE_URL}/api/admin/ai-workshop-recommendations`);
       const data = await res.json();
       if (data.success) {
         setRecommendations(data.recommendations);

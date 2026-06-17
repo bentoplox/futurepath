@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../apiConfig';
 // ============================================================================
 // FILE: src/components/alumnihub/AlumniDashboard.jsx
 // PURPOSE: Alumni Hub with Interactive Curriculum Review (Professional Emojis)
@@ -79,7 +80,7 @@ const AlumniDashboard = ({ user, onLogout }) => {
     if (!activeUserId) return;
     setLoadingStats(true);
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/alumni/profile/stats?user_id=${activeUserId}`);
+      const res = await fetch(`${API_BASE_URL}/api/alumni/profile/stats?user_id=${activeUserId}`);
       const data = await res.json();
 
       if (data.success) {
@@ -123,7 +124,7 @@ const AlumniDashboard = ({ user, onLogout }) => {
   const handleStatsSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://127.0.0.1:5000/api/alumni/profile/stats', {
+      const res = await fetch(`${API_BASE_URL}/api/alumni/profile/stats`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...careerStats, user_id: activeUserId })
@@ -140,7 +141,7 @@ const AlumniDashboard = ({ user, onLogout }) => {
   const handleSettingsSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://127.0.0.1:5000/api/alumni/profile/stats', {
+      const res = await fetch(`${API_BASE_URL}/api/alumni/profile/stats`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...careerStats, user_id: activeUserId })
@@ -165,7 +166,7 @@ const AlumniDashboard = ({ user, onLogout }) => {
   const fetchPosts = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/discussion/all?user_id=${activeUserId}`);
+      const res = await fetch(`${API_BASE_URL}/api/discussion/all?user_id=${activeUserId}`);
       const data = await res.json();
 
       if (data.success) {
@@ -187,7 +188,7 @@ const AlumniDashboard = ({ user, onLogout }) => {
     if (!window.confirm("Are you sure you want to permanently delete this post?")) return;
 
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/discussion/delete/${postId}?user_id=${activeUserId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/discussion/delete/${postId}?user_id=${activeUserId}`, {
         method: 'DELETE'
       });
       const data = await res.json();
@@ -283,7 +284,7 @@ const AlumniDashboard = ({ user, onLogout }) => {
     };
 
     try {
-      const res = await fetch('http://127.0.0.1:5000/api/discussion/posts', {
+      const res = await fetch(`${API_BASE_URL}/api/discussion/posts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -698,7 +699,7 @@ export const AlumniCurriculumReview = ({ user }) => {
   useEffect(() => {
     const fetchTree = async () => {
       try {
-        const res = await fetch('http://127.0.0.1:5000/api/quality/curriculum-tree');
+        const res = await fetch(`${API_BASE_URL}/api/quality/curriculum-tree`);
         const data = await res.json();
         if (data.success) setTreeData(data.tree);
       } catch (err) {
@@ -733,7 +734,7 @@ export const AlumniCurriculumReview = ({ user }) => {
     };
 
     try {
-      const res = await fetch('http://127.0.0.1:5000/api/quality/feedback', {
+      const res = await fetch(`${API_BASE_URL}/api/quality/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

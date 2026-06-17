@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../apiConfig';
 // ============================================================================
 // FILE: src/components/alumnihub/StudentJobBoard.jsx
 // PURPOSE: Interactive Job Board & Mentorship Hub with Comments (Premium UI)
@@ -47,7 +48,7 @@ const StudentJobBoard = ({ onBack }) => {
     setLoading(true);
     try {
       // ⚡ Rerouted to Flask to bypass Supabase frontend RLS blocks
-      const res = await fetch('http://127.0.0.1:5000/api/discussion/feed');
+      const res = await fetch(`${API_BASE_URL}/api/discussion/feed`);
       const data = await res.json();
       
       if (data.success) {
@@ -63,7 +64,7 @@ const StudentJobBoard = ({ onBack }) => {
 
   const fetchFavorites = async () => {
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/discussion/favorites/${user.user_id}`);
+      const res = await fetch(`${API_BASE_URL}/api/discussion/favorites/${user.user_id}`);
       const data = await res.json();
       if (data.success) setFavorites(data.favorites);
     } catch (err) { console.error("Failed to fetch favorites", err); }
@@ -71,7 +72,7 @@ const StudentJobBoard = ({ onBack }) => {
 
   const handleToggleFavorite = async (postId) => {
     try {
-      const res = await fetch('http://127.0.0.1:5000/api/discussion/favorite', {
+      const res = await fetch(`${API_BASE_URL}/api/discussion/favorite`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: user.user_id, post_id: postId })

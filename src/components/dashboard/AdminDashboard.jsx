@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../apiConfig';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { styles } from '../../styles/styles';
@@ -75,17 +76,17 @@ const AdminDashboard = ({ user, onLogout }) => {
 
         const { data: gData } = await supabase.from('faculty_ge_data').select('*').eq('year', 2025);
 
-        const fRes = await fetch('http://127.0.0.1:5000/api/admin/feedback');
+        const fRes = await fetch(`${API_BASE_URL}/api/admin/feedback`);
         const fData = await fRes.json();
-        const hRes = await fetch('http://127.0.0.1:5000/api/admin/heatmap');
+        const hRes = await fetch(`${API_BASE_URL}/api/admin/heatmap`);
         const hData = await hRes.json();
 
-        const sRes = await fetch('http://127.0.0.1:5000/api/admin/summary-stats');
+        const sRes = await fetch(`${API_BASE_URL}/api/admin/summary-stats`);
         const sData = await sRes.json();
 
-        const healthRes = await fetch('http://127.0.0.1:5000/api/admin/curriculum-health');
+        const healthRes = await fetch(`${API_BASE_URL}/api/admin/curriculum-health`);
         const healthData = await healthRes.json();
-        const assetRes = await fetch('http://127.0.0.1:5000/api/admin/asset-coverage');
+        const assetRes = await fetch(`${API_BASE_URL}/api/admin/asset-coverage`);
         const assetData = await assetRes.json();
 
         if (sData.success) setSummaryStats(sData.stats);
@@ -105,8 +106,8 @@ const AdminDashboard = ({ user, onLogout }) => {
 
   const markFeedbackAsReviewed = async () => {
       try {
-          await fetch('http://127.0.0.1:5000/api/admin/mark-feedback-reviewed', { method: 'POST' });
-          const sRes = await fetch('http://127.0.0.1:5000/api/admin/summary-stats');
+          await fetch(`${API_BASE_URL}/api/admin/mark-feedback-reviewed`, { method: 'POST' });
+          const sRes = await fetch(`${API_BASE_URL}/api/admin/summary-stats`);
           const sData = await sRes.json();
           if (sData.success) setSummaryStats(sData.stats);
       } catch (err) { console.error("Error marking feedback as reviewed:", err); }
@@ -115,7 +116,7 @@ const AdminDashboard = ({ user, onLogout }) => {
   const updateStatus = async (postId, newStatus) => {
     if (!window.confirm(`Mark as ${newStatus}?`)) return;
     try {
-        const res = await fetch('http://127.0.0.1:5000/api/admin/moderate-post', {
+        const res = await fetch(`${API_BASE_URL}/api/admin/moderate-post`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ post_id: postId, status: newStatus })

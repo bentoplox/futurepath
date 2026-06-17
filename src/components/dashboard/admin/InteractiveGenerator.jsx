@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../apiConfig';
 import React, { useState } from 'react';
 
 const InteractiveGenerator = ({ fetchData, umBlue, umLightBlue, umGold }) => {
@@ -10,7 +11,7 @@ const InteractiveGenerator = ({ fetchData, umBlue, umLightBlue, umGold }) => {
 
     const startDrafting = async () => {
         setLoading(true);
-        const res = await fetch('http://127.0.0.1:5000/api/admin/draft/steps', {
+        const res = await fetch(`${API_BASE_URL}/api/admin/draft/steps`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ career_name: careerName })
@@ -26,7 +27,7 @@ const InteractiveGenerator = ({ fetchData, umBlue, umLightBlue, umGold }) => {
 
     const generateQuizzes = async () => {
         setLoading(true);
-        const res = await fetch('http://127.0.0.1:5000/api/admin/draft/quizzes', {
+        const res = await fetch(`${API_BASE_URL}/api/admin/draft/quizzes`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ skills: draftSteps.map(s => s.skill_name) })
@@ -41,7 +42,7 @@ const InteractiveGenerator = ({ fetchData, umBlue, umLightBlue, umGold }) => {
 
     const publishPath = async () => {
         setLoading(true);
-        const res = await fetch('http://127.0.0.1:5000/api/admin/commit-pathway', {
+        const res = await fetch(`${API_BASE_URL}/api/admin/commit-pathway`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
