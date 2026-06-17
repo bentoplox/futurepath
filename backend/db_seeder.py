@@ -1,15 +1,19 @@
 import random
 import uuid
 import sys
+import os
+from dotenv import load_dotenv
 from supabase import create_client, Client
+
+load_dotenv()
 
 # 🔥 WINDOWS CRASH FIX
 if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
 # --- CONFIGURATION ---
-SUPABASE_URL = "https://smgjboifsheewiyeupbo.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtZ2pib2lmc2hlZXdpeWV1cGJvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzA0MDc3OSwiZXhwIjoyMDgyNjE2Nzc5fQ.ySJgBXFvZk5xxYzHqR7NfPXrRVGaR-8HrzC_tojuHhc" 
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # skill_id 1: Python, 2: React, 3: SQL, 4: Docker, 5: AWS Cloud

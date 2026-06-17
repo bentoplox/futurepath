@@ -4,11 +4,15 @@
 # ============================================================================
 
 import json
+import os
+from dotenv import load_dotenv
 from supabase import create_client, Client
 
-SUPABASE_URL = "https://smgjboifsheewiyeupbo.supabase.co"
+load_dotenv()
+
+SUPABASE_URL = os.getenv("SUPABASE_URL")
 # Use your Supabase Service Role Key here to bypass Row Level Security for admin tasks
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtZ2pib2lmc2hlZXdpeWV1cGJvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzA0MDc3OSwiZXhwIjoyMDgyNjE2Nzc5fQ.ySJgBXFvZk5xxYzHqR7NfPXrRVGaR-8HrzC_tojuHhc" 
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def populate_database_from_json(json_file_path):

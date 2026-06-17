@@ -7,3 +7,4 @@ groq
 langchain-google-genai
 langchain-core
 langchain-groq
+gunicorn
