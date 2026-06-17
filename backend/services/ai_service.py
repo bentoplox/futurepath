@@ -1,6 +1,4 @@
 import os
-import json
-import google.generativeai as genai
 from openai import OpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
