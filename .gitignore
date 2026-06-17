@@ -144,3 +144,5 @@ backend/model/
 .pyc
 .pyo
 .pyd
+*.pyc
+*.pyc
