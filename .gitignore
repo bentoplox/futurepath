@@ -141,3 +141,6 @@ vite.config.ts.timestamp-*
 backend/model/
 
  __pycache__/
+.pyc
+.pyo
+.pyd
