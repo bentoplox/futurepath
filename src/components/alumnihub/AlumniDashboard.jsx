@@ -39,6 +39,7 @@ const AlumniDashboard = ({ user, onLogout }) => {
   const [isSettingsSaved, setIsSettingsSaved] = useState(false);
   const [expandedPostId, setExpandedPostId] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [showOnlyMyPosts, setShowOnlyMyPosts] = useState(false);
 
   const programs = [
     "BACHELOR OF COMPUTER SCIENCE (DATA SCIENCE)",
@@ -208,6 +209,9 @@ const AlumniDashboard = ({ user, onLogout }) => {
     if (activeTab === 'mentorship' && selectedCategory !== 'All') {
       if (post.post_type !== selectedCategory) return false;
     }
+
+    // ⚡ NEW: Filter by personal posts toggle
+    if (showOnlyMyPosts && post.author_id !== activeUserId) return false;
 
     const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       post.content.toLowerCase().includes(searchQuery.toLowerCase());
@@ -530,14 +534,30 @@ const AlumniDashboard = ({ user, onLogout }) => {
                 </div>
               )}
 
-              {/* NEW: Alumni Search Input */}
-              <input
-                type="text"
-                placeholder={`Search your ${activeTab === 'jobs' ? 'opportunities' : 'discussions'}...`}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}
-              />
+              {/* NEW: Alumni Search & Filter Toggle */}
+              <div style={{ display: 'flex', gap: '15px', alignItems: 'center', marginBottom: '20px' }}>
+                <input
+                  type="text"
+                  placeholder={`Search your ${activeTab === 'jobs' ? 'opportunities' : 'discussions'}...`}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{ flex: 1, padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', fontFamily: "'Aeonik', 'Plus Jakarta Sans', sans-serif" }}
+                />
+                
+                <button 
+                  onClick={() => setShowOnlyMyPosts(!showOnlyMyPosts)}
+                  style={{ 
+                    padding: '12px 20px', borderRadius: '12px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', border: '1px solid', 
+                    backgroundColor: showOnlyMyPosts ? '#4c2882' : 'white', 
+                    borderColor: '#4c2882', 
+                    color: showOnlyMyPosts ? 'white' : '#4c2882',
+                    transition: 'all 0.2s',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {showOnlyMyPosts ? 'Showing Mine ✓' : 'Show All Posts'}
+                </button>
+              </div>
 
               <h2 style={{ fontSize: '20px', color: '#333', marginBottom: '20px', display: 'flex', alignItems: 'center', fontWeight: 'bold' }}>
                 <span style={{ marginRight: '10px', fontSize: '24px' }}>{activeTab === 'jobs' ? '📌' : '💡'}</span>
