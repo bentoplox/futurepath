@@ -25,21 +25,33 @@ const AppContent = () => {
 
   // Navigation State
   const [currentView, setCurrentView] = useState(localStorage.getItem('activeTab') || 'dashboard');
-  const [selectedCareerId, setSelectedCareerId] = useState(null);
+  const [selectedCareerId, setSelectedCareerId] = useState(localStorage.getItem('selectedCareerId') || null);
   const [showProfile, setShowProfile] = useState(false);
 
-  // ⚡ Enforce Default State Initialization (Hard reset to Home Dashboard upon auth)
+  // ⚡ Clear persistence on logout and ensure profile modal is closed on login
   React.useEffect(() => {
     if (user) {
+      setShowProfile(false);
+    } else {
+      localStorage.removeItem('activeTab');
+      localStorage.removeItem('selectedCareerId');
       setCurrentView('dashboard');
-      setShowProfile(false); // ⚡ Ensure profile modal is closed on login
+      setSelectedCareerId(null);
     }
   }, [user]);
 
-  // ⚡ Sync Navigation State to LocalStorage (Ensures persistence and correct reset)
+  // ⚡ Sync Navigation State to LocalStorage (Ensures persistence)
   React.useEffect(() => {
     localStorage.setItem('activeTab', currentView);
   }, [currentView]);
+
+  React.useEffect(() => {
+    if (selectedCareerId) {
+      localStorage.setItem('selectedCareerId', selectedCareerId);
+    } else {
+      localStorage.removeItem('selectedCareerId');
+    }
+  }, [selectedCareerId]);
 
   // Auth View State
   const [showLoginScreen, setShowLoginScreen] = useState(false);
