@@ -16,9 +16,19 @@ const SkillGapInput = ({ user, onBack }) => {
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [validationError, setValidationError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.skill_name.trim()) {
+      setValidationError('Skill name is required.');
+      return;
+    }
+    if (formData.skill_name.length > 30) {
+      setValidationError('Skill name cannot be more than 30 characters.');
+      return;
+    }
+    setValidationError('');
     setLoading(true);
 
     try {
@@ -107,10 +117,22 @@ const SkillGapInput = ({ user, onBack }) => {
                 type="text" 
                 placeholder="e.g. Flutter, Advanced SQL, Public Speaking" 
                 required
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '15px' }}
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: validationError ? '1px solid #ef4444' : '1px solid #d1d5db', fontSize: '15px' }}
                 value={formData.skill_name}
-                onChange={(e) => setFormData({...formData, skill_name: e.target.value})}
+                onChange={(e) => {
+                  setFormData({...formData, skill_name: e.target.value});
+                  if (e.target.value.length > 30) {
+                    setValidationError('Skill name cannot be more than 30 characters.');
+                  } else {
+                    setValidationError('');
+                  }
+                }}
               />
+              {validationError && (
+                <span style={{ display: 'block', fontSize: '13px', color: '#ef4444', marginTop: '6px' }}>
+                  ⚠️ {validationError}
+                </span>
+              )}
             </div>
 
             <div>

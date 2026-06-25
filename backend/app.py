@@ -10,7 +10,7 @@ from routes.alumni_routes import alumni_bp
 from routes.quality_routes import quality_bp
 from routes.quiz_routes import quiz_bp
 from routes.workshop_routes import workshop_bp
-from routes.discussion_routes import discussion_bp # 👈 IMPORT ADDED HERE
+from routes.discussion_routes import discussion_bp 
 
 # 🔥 WINDOWS CRASH FIX
 if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
@@ -27,7 +27,7 @@ app.register_blueprint(alumni_bp)
 app.register_blueprint(quality_bp)
 app.register_blueprint(quiz_bp)
 app.register_blueprint(workshop_bp)
-app.register_blueprint(discussion_bp) # 👈 REGISTRATION ADDED HERE
+app.register_blueprint(discussion_bp) 
 
 import os
 

@@ -146,3 +146,10 @@ backend/model/
 .pyd
 *.pyc
 *.pyc
+backend/__pycache__/app.cpython-313.pyc
+backend/__pycache__/app.cpython-313.pyc
+backend/__pycache__/app.cpython-313.pyc
+backend/routes/__pycache__/admin_routes.cpython-313.pyc
+backend/routes/__pycache__/ai_routes.cpython-313.pyc
+backend/services/__pycache__/ai_service.cpython-313.pyc
+backend/services/__pycache__/supabase_service.cpython-313.pyc

@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-AI_PROVIDER = os.getenv("AI_PROVIDER", "groq") # "openai", "gemini", or "groq"
+AI_PROVIDER = os.getenv("AI_PROVIDER", "groq") 
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-exp")
 
